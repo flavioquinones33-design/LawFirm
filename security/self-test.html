@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Blocks all network access: no external scripts, styles, fonts, images or requests. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Note Tool Self-Test</title>
+<style>
+  :root { --bg:#fff; --fg:#1b1b1b; --muted:#5c5c5c; --line:#d9d9d9; --card:#f6f6f6; --bad:#b3261e; --ok:#1e6b34; --warn:#8a5a00; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#151515; --fg:#ececec; --muted:#a8a8a8; --line:#3a3a3a; --card:#1f1f1f; --bad:#f2b8b5; --ok:#9fd5a8; --warn:#f0c674; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width:860px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  h2 { font-size:1.15rem; margin:32px 0 8px; border-bottom:1px solid var(--line); padding-bottom:4px; }
+  p, li { color:var(--fg); }
+  .muted { color:var(--muted); }
+  table { width:100%; border-collapse:collapse; margin:8px 0; font-size:14px; }
+  th, td { text-align:left; vertical-align:top; padding:6px 8px; border-bottom:1px solid var(--line); }
+  code { background:var(--card); padding:1px 4px; border-radius:4px; font-size:13px; }
+  textarea { width:100%; min-height:160px; padding:8px; font:14px/1.4 ui-monospace, Consolas, monospace; background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:6px; }
+  button { font:inherit; padding:6px 14px; margin:8px 8px 0 0; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--fg); cursor:pointer; }
+  .bad { color:var(--bad); font-weight:600; }
+  .ok { color:var(--ok); font-weight:600; }
+  .warn { color:var(--warn); font-weight:600; }
+  .table-wrap { overflow-x:auto; }
+  #status { margin-top:8px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Note Tool Self-Test</h1>
+  <p class="muted">Runs entirely on this computer. This page makes no network requests and stores nothing.
+  Use only the made-up test values below, never real call data.</p>
+
+  <h2>Part A: Test your note tool</h2>
+  <p>Open your note tool in another tab and run each test. Record Pass or Fail in <code>CHECKLIST.md</code>.</p>
+
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>#</th><th>Test</th><th>Pass if</th></tr></thead>
+    <tbody>
+      <tr><td>T1</td><td>Type <code>TEST-ONLY-ALPHA</code> in a free-text field. Close the tab and reopen the tool.</td><td>The field is empty.</td></tr>
+      <tr><td>T2</td><td>With the tool open, press F12 &gt; Application (Chrome) or Storage (Firefox). Look at Local Storage, Session Storage and IndexedDB for the file.</td><td>No entries contain form text.</td></tr>
+      <tr><td>T3</td><td>Fill a field and leave the tool idle for its stated timeout.</td><td>The form clears itself. (Fail if the tool has no timeout.)</td></tr>
+      <tr><td>T4</td><td>Press F12 &gt; Network, reload the tool, fill and copy a note.</td><td>No requests besides the file itself.</td></tr>
+      <tr><td>T5</td><td>Type <code>TEST</code> in a field, reload, then type <code>T</code> again.</td><td>The browser offers no autofill suggestion.</td></tr>
+      <tr><td>T6</td><td>Enter each "Should block" value below into a free-text field and try to copy the note.</td><td>Copy is blocked for every value.</td></tr>
+      <tr><td>T7</td><td>Enter each "Should allow" value below and copy the note.</td><td>Copy works (no false block).</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Synthetic test values</h3>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Should block</th><th>Category</th></tr></thead>
+    <tbody>
+      <tr><td><code>tester@example.com</code></td><td>Email</td></tr>
+      <tr><td><code>(555) 010-0199</code></td><td>Phone</td></tr>
+      <tr><td><code>555.010.0199</code></td><td>Phone, other format</td></tr>
+      <tr><td><code>000-00-0000</code></td><td>Government ID format</td></tr>
+      <tr><td><code>123 Example Street</code></td><td>Street address</td></tr>
+      <tr><td><code>45 Sample Ave Apt 2</code></td><td>Street address, abbreviated</td></tr>
+      <tr><td><code>DOB 01/02/1990</code></td><td>Labeled date of birth</td></tr>
+      <tr><td><code>claim 00000000</code></td><td>Long number (claim/policy/record)</td></tr>
+    </tbody>
+  </table>
+  <table>
+    <thead><tr><th>Should allow</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><code>01/02/2026 3:15 PM</code></td><td>Incident date and time</td></tr>
+      <tr><td><code>00000</code></td><td>5-digit ZIP code</td></tr>
+      <tr><td><code>the other driver ran a red light</code></td><td>Roles, no identifiers</td></tr>
+      <tr><td><code>near the intersection of Main and 1st</code></td><td>Cross streets, no house number</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Part B: Second-check scanner</h2>
+  <p>Paste a <strong>test</strong> note here to see which identifier patterns appear. The text is never saved
+  and clears after 2 minutes of inactivity or when you close the tab.</p>
+  <p class="muted">Limits: it cannot detect personal names, and patterns can miss unusual formats.
+  A person must still read every note.</p>
+
+  <form autocomplete="off" onsubmit="return false">
+    <label for="note" class="muted">Note text</label>
+    <textarea id="note" autocomplete="off" spellcheck="false"></textarea>
+    <button type="button" id="scan">Scan</button>
+    <button type="button" id="clear">Clear</button>
+  </form>
+  <div id="status" aria-live="polite"></div>
+  <div class="table-wrap"><table id="results" hidden>
+    <thead><tr><th>Category</th><th>Matches</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  // Each rule: label + regex. Kept simple and readable so it can be reviewed.
+  var RULES = [
+    { label: "Email", re: /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi },
+    { label: "Phone", re: /(?:\+?1[\s.-]?)?\(?\b\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/g },
+    { label: "Government ID format", re: /\b\d{3}-\d{2}-\d{4}\b/g },
+    { label: "Street address", re: /\b\d{1,6}\s+(?:[A-Z0-9][\w.'-]*\s+){1,4}(?:st|street|ave|avenue|rd|road|blvd|boulevard|dr|drive|ln|lane|ct|court|way|pl|place|pkwy|parkway|hwy|highway|cir|circle|ter|terrace)\b\.?/gi },
+    { label: "Labeled date of birth", re: /\b(?:dob|d\.o\.b\.|date of birth|born(?: on)?)\b[:\s]*\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}/gi },
+    { label: "ZIP+4", re: /\b\d{5}-\d{4}\b/g },
+    { label: "Long number (7+ digits)", re: /\b\d{7,}\b/g },
+    { label: "Letter-digit code (plate/claim/record)", re: /\b(?=[A-Z0-9-]*\d)(?=[A-Z0-9-]*[A-Z])[A-Z0-9]{2,}-?[A-Z0-9]{3,}\b/g }
+  ];
+
+  var note = document.getElementById("note");
+  var statusEl = document.getElementById("status");
+  var table = document.getElementById("results");
+  var tbody = table.querySelector("tbody");
+  var IDLE_MS = 2 * 60 * 1000;
+  var idleTimer = null;
+
+  function scan(text) {
+    var found = [];
+    RULES.forEach(function (rule) {
+      var m = text.match(rule.re);
+      if (m && m.length) {
+        var unique = m.filter(function (v, i) { return m.indexOf(v) === i; });
+        found.push({ label: rule.label, matches: unique });
+      }
+    });
+    return found;
+  }
+
+  function render(found) {
+    tbody.textContent = "";
+    if (!note.value.trim()) {
+      table.hidden = true;
+      statusEl.innerHTML = '<span class="warn">Nothing to scan.</span>';
+      return;
+    }
+    if (!found.length) {
+      table.hidden = true;
+      statusEl.innerHTML = '<span class="ok">No identifier patterns found.</span> Still read the note for names.';
+      return;
+    }
+    found.forEach(function (f) {
+      var tr = document.createElement("tr");
+      var td1 = document.createElement("td");
+      var td2 = document.createElement("td");
+      td1.textContent = f.label;
+      td2.textContent = f.matches.join("  |  ");
+      tr.appendChild(td1); tr.appendChild(td2);
+      tbody.appendChild(tr);
+    });
+    table.hidden = false;
+    statusEl.innerHTML = '<span class="bad">' + found.length + ' categor' + (found.length === 1 ? 'y' : 'ies') + ' found.</span> Remove these before saving the note.';
+  }
+
+  function clearAll(msg) {
+    note.value = "";
+    tbody.textContent = "";
+    table.hidden = true;
+    statusEl.textContent = msg || "";
+  }
+
+  function resetIdle() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () { clearAll("Cleared after 2 minutes of inactivity."); }, IDLE_MS);
+  }
+
+  document.getElementById("scan").addEventListener("click", function () { render(scan(note.value)); resetIdle(); });
+  document.getElementById("clear").addEventListener("click", function () { clearAll("Cleared."); });
+  ["input", "keydown", "pointerdown"].forEach(function (ev) { document.addEventListener(ev, resetIdle); });
+  window.addEventListener("pagehide", function () { clearAll(); });
+
+  // Expose for automated checks only; holds no data.
+  window.__noteScan = scan;
+})();
+</script>
+</body>
+</html>
