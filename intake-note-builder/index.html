@@ -277,6 +277,11 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
           <button type="button" class="vm-lang" data-lang="en" aria-pressed="true">English</button>
           <button type="button" class="vm-lang" data-lang="es" aria-pressed="false">Español</button>
         </div>
+        <div class="row" id="vm-setup">
+          <div class="f"><label for="vm-firm">Firm name</label><input type="text" id="vm-firm"></div>
+          <div class="f"><label for="vm-cb">Callback number</label><input type="text" id="vm-cb" inputmode="tel" placeholder="800-000-0000"></div>
+        </div>
+        <span class="hint" id="vm-keep" hidden>To keep these, click Setup, then Download customized copy.</span>
         <p class="vm-text" id="vm-text" lang="en"></p>
         <span class="hint">Say only this. Never mention the case, injuries or why they contacted us.</span>
         <div class="bar"><button type="button" id="btn-vm">Voicemail left: set disposition</button></div>
@@ -749,6 +754,8 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
       msg.push(qr.length + " quick-reference entries loaded");
     }
     $("s-out").textContent = (msg.length ? msg.join(". ") + ". " : "") + "Applied. Download a customized copy to keep it.";
+    $("vm-firm").value = isPlaceholder(CONFIG.firmName) ? "" : CONFIG.firmName;
+    $("vm-cb").value = isPlaceholder(CONFIG.callbackNumber) ? "" : CONFIG.callbackNumber;
     render(); renderQR();
   }
   function saveCopy() {
@@ -771,6 +778,19 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
 
   // ---- Voicemail ----
   var vmLang = "en";
+  // Firm name and callback number can be set right in the Voicemail box (outside the form, so New lead keeps them).
+  function isPlaceholder(s) { return !s || /^\[.*\]$/.test(s); }
+  $("vm-firm").value = isPlaceholder(CONFIG.firmName) ? "" : CONFIG.firmName;
+  $("vm-cb").value = isPlaceholder(CONFIG.callbackNumber) ? "" : CONFIG.callbackNumber;
+  ["vm-firm", "vm-cb"].forEach(function (id) {
+    $(id).addEventListener("input", function () {
+      var val = $(id).value.trim(), key = id === "vm-firm" ? "firmName" : "callbackNumber";
+      CONFIG[key] = val || (key === "firmName" ? "[Firm Name]" : "[callback number]");
+      custom[key] = CONFIG[key];
+      $("vm-keep").hidden = false;
+      renderVoicemail();
+    });
+  });
   function renderVoicemail() {
     var agent = one(v("agent")) || "[your name]";
     var t = (CONFIG.voicemail[vmLang] || "").replace(/\{agent\}/g, agent).replace(/\{firm\}/g, CONFIG.firmName).replace(/\{callback\}/g, CONFIG.callbackNumber);
