@@ -85,6 +85,12 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
 .vm-text { margin:0; font-size:.92rem; line-height:1.5; }
 .vm-lang { padding:4px 12px; font-size:.82rem; }
 .vm-lang[aria-pressed="true"] { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
+.cons { display:grid; gap:6px; }
+.cons:empty { display:none; }
+.cons-title { font-size:.74rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--warn); }
+.cons-item { display:flex; gap:10px; align-items:flex-start; justify-content:space-between; font-size:.84rem; padding:7px 10px; border-radius:5px; background:var(--warn-bg); color:var(--warn); }
+.cons-item q { display:block; font-size:.76rem; opacity:.85; font-style:italic; quotes:"\201C" "\201D"; }
+.cons-item button { padding:3px 10px; font-size:.76rem; flex:none; }
 .box { border:1px dashed var(--line); border-radius:6px; padding:12px 14px; display:grid; gap:8px; }
 .box-out { font-size:.82rem; color:var(--muted); }
 [hidden] { display:none !important; }
@@ -270,6 +276,7 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
 
     <section class="panel out" aria-label="Note">
       <div class="af" id="af" role="status"></div>
+      <div class="cons" id="cons" aria-live="polite"></div>
       <div class="chk"><input type="checkbox" id="compact"><label for="compact">Compact: hide empty lines and list them under Not asked / PC did not know</label></div>
       <pre id="note"></pre>
       <div class="bar"><button type="button" class="primary" id="copy">Copy note</button><span class="toast" id="toast" role="status"></span></div>
@@ -316,6 +323,74 @@ var CONFIG = {
   dispAttempted: "Attempted Transfer - Info Sent",
   dispCallback: "Schedule Callback",
   dispDnc: "Do Not Call",
+  /* Consistency checks: compare the PC's story with the structured answers.
+     Each rule: id, re (pattern to find in the text), optional "in" (fields to search;
+     default = the story fields), optional when(f, m) that returns true when the
+     structured answers don't match yet, and msg. f("fieldId") reads a field;
+     f.picks is the list of serious injuries checked. These only ask the agent
+     to confirm; they never change an answer or make a legal decision. */
+  consistency: [
+    { id: "work", re: /\b(at work|on the job|for my (boss|employer|job|company)|work (truck|van|vehicle)|company (car|vehicle|truck|van)|job ?site|on (my|the) shift|clocked in|delivering|making a delivery)\b/i,
+      when: function (f) { return f("type") !== "wc" && !/workers/i.test(f("type2")); },
+      msg: "Story suggests the PC was working. Check for a dual case type with Workers' Comp." },
+    { id: "lawyer", re: /\b((my|an?|the) (lawyer|attorney|law firm)|(hired|retained|signed with|talked to) (a |an |my )?(lawyer|attorney|law firm))\b/i,
+      when: function (f) { return f("atty") !== "Yes"; },
+      msg: "PC mentioned a lawyer. Confirm whether they are already represented." },
+    { id: "passengers", re: /\b(passengers?|back ?seat|(my |the )?(kids?|children|son|daughter|wife|husband|friend|mom|dad|mother|father)s? (was|were) (in|with) (me|the car|the vehicle))\b/i,
+      when: function (f) { return f("type") === "mva"; },
+      msg: "Other people were in the vehicle. Ask whether anyone else was hurt (possible additional claimants)." },
+    { id: "minor-age", re: /\b(\d{1,2})[- ]?(?:year|yr)s?[- ]?old\b/i,
+      when: function (f, m) { return +m[1] < 18; },
+      msg: "Story mentions someone under 18. Confirm who the PC is and follow the parent/guardian procedure if needed." },
+    { id: "minor-words", re: /\b(my (son|daughter|child|kid|baby|grandson|granddaughter|stepson|stepdaughter)|a minor|teenager|in high school)\b/i,
+      when: function (f) { return f("rel") === "Self" || f("rel") === ""; },
+      msg: "Story mentions a child. Confirm whether the PC is the caller or a minor, and set the caller's relationship." },
+    { id: "year", re: /\b(19|20)\d{2}\b/,
+      when: function (f, m) { var y = (f("date").match(/\b(19|20)\d{2}\b/) || [])[0]; return y && y !== m[0]; },
+      msg: "A year in the story doesn't match the incident date field. Confirm the date." },
+    { id: "reldate", re: /\b(yesterday|last (night|week|month|year|monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|april|may|june|july|august|september|october|november|december)|\d+ (days?|weeks?|months?|years?) ago)\b/i,
+      when: function (f) { return !f("date"); },
+      msg: "Story gives a relative date. Ask for the exact date and fill in the incident date." },
+    { id: "settled", re: /\b(settled|settlement|offered (me )?(a )?(check|money|payment)|got (a check|paid)|cashed (a|the) check|signed (a|the) release)\b/i,
+      when: function (f) { return f("settled") !== "Yes"; },
+      msg: "Story mentions a settlement, payment or release. Confirm whether the claim is already settled or resolved." },
+    { id: "fault", re: /\b(my fault|i was at fault|i got (a )?(ticket|cited)|i was (ticketed|cited)|i ran (the|a) (red light|stop sign))\b/i,
+      when: function (f) { return f("fault") !== "Yes"; },
+      msg: "Story suggests the PC may have been found at fault. Confirm the fault answer as the PC reports it." },
+    { id: "police", re: /\b(police|cops?|officers?|trooper|sheriff|deputy)\b/i,
+      when: function (f) { return f("docs") === "" || f("docs") === "No"; },
+      msg: "Story mentions police. Confirm the documentation answer." },
+    { id: "uninsured", re: /\b(no insurance|uninsured|didn'?t have insurance|wasn'?t insured|not insured)\b/i,
+      when: function (f) { return f("ins") === "Yes" || f("oins") === "Yes"; },
+      msg: "Story says someone had no insurance, but an insurance answer is Yes. Confirm whose coverage is which." },
+    { id: "hitrun", re: /\b(hit[- ]and[- ]run|fled the scene|drove off|took off|left the scene)\b/i,
+      when: function (f) { return f("oins") === "Yes"; },
+      msg: "Hit-and-run mentioned, but at-fault party insured is Yes. Confirm." },
+    { id: "death", re: /\b(passed away|died|killed|deceased)\b/i,
+      when: function (f) { return f.picks.indexOf("Death") < 0 || f("rel") === "Self"; },
+      msg: "Story mentions a death. Confirm the serious-injury selection and the caller's relationship." },
+    { id: "surgery", re: /\b(surgery|surgeries|operated on|operation)\b/i, in: ["inj", "tx", "what"],
+      when: function (f) { return f.picks.indexOf("Surgery") < 0; },
+      msg: "Surgery mentioned. Confirm whether it happened or was only recommended, and check Serious injuries only if the PC stated it." },
+    { id: "dog", re: /\b(dog|pit ?bull|bitten|bit me)\b/i,
+      when: function (f) { return f("type") !== "dog" && !/dog/i.test(f("type2")); },
+      msg: "Story mentions a dog or a bite. Check the case type." },
+    { id: "slip", re: /\b(slipped|tripped|fell (on|in|down|off))\b/i,
+      when: function (f) { return f("type") === "mva" && !/premises/i.test(f("type2")); },
+      msg: "Story mentions a slip or fall. Check the case type." },
+    { id: "vehicle", re: /\b(car (accident|crash)|collision|rear[- ]ended|t-?boned|crashed into)\b/i,
+      when: function (f) { return f("type") && f("type") !== "mva" && !/motor/i.test(f("type2")); },
+      msg: "Story describes a vehicle collision. Check the case type." },
+    { id: "behalf", re: /\b(son|daughter|child|wife|husband|spouse|mother|father|mom|dad|parent|brother|sister|friend)\b/i, in: ["behalf"],
+      when: function (f) { return f("rel") === "Self" || f("rel") === ""; },
+      msg: "\"Calling on behalf of\" names someone else. Set the caller's relationship to PC." },
+    { id: "dnc", re: /\b(stop calling|don'?t call|do not call|remove (me|my number)|take me off)\b/i, in: ["outcome", "what"],
+      when: function (f) { return f("disp") !== CONFIG.dispDnc; },
+      msg: "PC asked to stop contact. Select Do Not Call and uncheck Add to dialer." },
+    { id: "callback", re: /\b(call (me )?back|call me (tomorrow|later|at|on))\b/i, in: ["outcome"],
+      when: function (f) { return f("disp") !== CONFIG.dispCallback; },
+      msg: "Outcome mentions a callback. If one was agreed, select Schedule Callback and add the time." }
+  ],
   script: {
     opening: [H("Opening"), S("[Approved greeting, including the recording disclosure.] My name is {agent}."),
       S("[Approved question confirming the best phone number in case the call disconnects.]"),
@@ -495,6 +570,41 @@ var CONFIG = {
     });
   }
 
+  // ---- Consistency engine ----
+  var STORY = ["what", "spec", "inj", "tx", "loc"], dismissed = {};
+  function consistency() {
+    var f = function (id) { return v(id) || ""; }; f.picks = injPicked();
+    var out = [];
+    CONFIG.consistency.forEach(function (r) {
+      if (dismissed[r.id]) return;
+      var text = (r.in || STORY).map(function (id) { return v(id); }).join(" \n ");
+      var m = text.match(r.re);
+      if (!m) return;
+      try { if (r.when && !r.when(f, m)) return; } catch (e) { return; }
+      out.push({ id: r.id, msg: r.msg, found: m[0] });
+    });
+    return out;
+  }
+  var consSig = null;
+  function renderConsistency() {
+    var box = $("cons"), items = consistency();
+    // Skip rebuilding when nothing changed, so a click on "Confirmed" isn't lost when a field loses focus.
+    var sig = items.map(function (i) { return i.id + ":" + i.found; }).join("|");
+    if (sig === consSig) return;
+    consSig = sig; box.textContent = "";
+    if (!items.length) return;
+    var h = document.createElement("div"); h.className = "cons-title"; h.textContent = "Consistency checks: " + items.length; box.appendChild(h);
+    items.forEach(function (it) {
+      var row = document.createElement("div"); row.className = "cons-item";
+      var txt = document.createElement("div"); txt.textContent = it.msg;
+      var q = document.createElement("q"); q.textContent = "Found: " + it.found; txt.appendChild(q);
+      var b = document.createElement("button"); b.type = "button"; b.textContent = "Confirmed";
+      b.setAttribute("aria-label", "Confirmed: " + it.msg);
+      b.addEventListener("click", function () { dismissed[it.id] = true; renderConsistency(); });
+      row.appendChild(txt); row.appendChild(b); box.appendChild(row);
+    });
+  }
+
   // ---- Voicemail ----
   var vmLang = "en";
   function renderVoicemail() {
@@ -515,6 +625,7 @@ var CONFIG = {
   // ---- Render ----
   function render() {
     renderVoicemail();
+    renderConsistency();
     var t = v("type"), disp = v("disp");
     $("wrap-sub").hidden = t !== "pl";
     $("wrap-dual").hidden = !v("dual");
@@ -652,6 +763,7 @@ var CONFIG = {
   function clearForm() {
     FIELDS.forEach(function (id) { var e = $(id); if (!e) return; if (e.type === "checkbox") e.checked = false; else e.value = ""; });
     undo = null; $("btn-undo").disabled = true; $("polish-out").textContent = "";
+    dismissed = {};
   }
   var timer = null;
   function resetIdle() { clearTimeout(timer); timer = setTimeout(function () { clearForm(); render(); toast("Cleared after 10 minutes of inactivity"); }, 10 * 60 * 1000); }
@@ -664,7 +776,7 @@ var CONFIG = {
   ["input", "change", "keydown", "pointerdown"].forEach(function (ev) { document.addEventListener(ev, resetIdle); });
   window.addEventListener("pagehide", clearForm);
 
-  window.__test = { polishText: polishText, idHits: idHits, addsNothing: addsNothing, grammarIssues: grammarIssues }; // for automated checks; holds no data
+  window.__test = { polishText: polishText, idHits: idHits, addsNothing: addsNothing, grammarIssues: grammarIssues, consistency: consistency }; // for automated checks; holds no data
   render(); resetIdle();
 })();
 </script>
