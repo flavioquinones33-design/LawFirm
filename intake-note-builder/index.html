@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Blocks all network access: no external scripts, fonts, images or requests. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Intake Note Builder</title>
+<style>
+:root {
+  --bg:#f1f4f5; --surface:#fff; --fg:#17232d; --muted:#5a6a76; --line:#d3dce1;
+  --accent:#0f6b78; --accent-fg:#fff; --warn:#8a5200; --warn-bg:#fff1d6;
+  --danger:#a3261f; --danger-bg:#fde7e5; --note-bg:#f8fafb;
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#0f171c; --surface:#172229; --fg:#e4ecf0; --muted:#93a5b0; --line:#2a3942;
+    --accent:#4fc3d0; --accent-fg:#06222a; --warn:#f0b85a; --warn-bg:#2e2412;
+    --danger:#ff8b82; --danger-bg:#36191a; --note-bg:#111b21; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#0f171c; --surface:#172229; --fg:#e4ecf0; --muted:#93a5b0; --line:#2a3942;
+  --accent:#4fc3d0; --accent-fg:#06222a; --warn:#f0b85a; --warn-bg:#2e2412;
+  --danger:#ff8b82; --danger-bg:#36191a; --note-bg:#111b21; color-scheme:dark;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.45 var(--font); padding:20px 16px 40px; }
+.wrap { max-width:1180px; margin:0 auto; display:grid; gap:20px; }
+header { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 16px; }
+h1 { font-size:1.35rem; font-weight:600; margin:0; }
+.sub { color:var(--muted); font-size:.88rem; margin:2px 0 0; }
+.layout { display:grid; gap:20px; grid-template-columns:minmax(0,1fr); align-items:start; }
+@media (min-width:940px) { .layout { grid-template-columns:minmax(0,1fr) minmax(0,.95fr); } .out { position:sticky; top:16px; } }
+.panel { background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:18px; display:grid; gap:14px; min-width:0; }
+.sec { margin:10px 0 0; font-size:.74rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); border-bottom:1px solid var(--line); padding-bottom:6px; }
+.row { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); }
+.f { display:grid; gap:4px; min-width:0; align-content:start; }
+label, .lab { font-size:.82rem; font-weight:500; }
+.req::after { content:" *"; color:var(--danger); }
+.hint { font-size:.76rem; color:var(--muted); }
+input[type=text], select, textarea { width:100%; font:inherit; color:var(--fg); background:var(--surface); border:1px solid var(--line); border-radius:5px; padding:8px 10px; min-width:0; }
+textarea { min-height:76px; resize:vertical; }
+:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+.chk { display:flex; gap:8px; align-items:flex-start; font-size:.86rem; }
+.chk input { width:16px; height:16px; margin-top:2px; accent-color:var(--accent); flex:none; }
+.checks { display:grid; gap:6px 16px; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); }
+.bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+button { font:inherit; font-weight:500; border-radius:5px; padding:8px 14px; cursor:pointer; border:1px solid var(--line); background:var(--surface); color:var(--fg); }
+button.primary { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
+button:disabled { opacity:.45; cursor:not-allowed; }
+pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap:anywhere; background:var(--note-bg); border:1px solid var(--line); border-radius:5px; padding:14px; max-height:58vh; overflow:auto; }
+.flags { display:grid; gap:6px; }
+.flags-title { font-size:.74rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+.flag { font-size:.84rem; padding:7px 10px; border-radius:5px; background:var(--warn-bg); color:var(--warn); }
+.flag.bad { background:var(--danger-bg); color:var(--danger); font-weight:500; }
+.toast { font-size:.84rem; color:var(--accent); min-height:1.2em; }
+.safe { font-size:.8rem; color:var(--muted); border-left:3px solid var(--line); padding-left:10px; margin:0; }
+.card { border:1px solid var(--line); border-left:4px solid var(--danger); border-radius:6px; padding:12px 14px; display:grid; gap:8px; background:var(--note-bg); }
+.card.done { border-left-color:var(--accent); }
+.card-title { display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap; }
+.card-title strong { font-size:.74rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); }
+.badge { font-size:.74rem; font-weight:600; padding:2px 8px; border-radius:999px; background:var(--danger-bg); color:var(--danger); }
+.card.done .badge { background:var(--surface); color:var(--accent); border:1px solid var(--accent); }
+.phase { font-size:.72rem; font-weight:600; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; margin-top:4px; }
+.tip { display:block; font-size:.78rem; color:var(--muted); font-style:italic; font-weight:400; }
+.scr { display:grid; gap:6px; border-left:3px solid var(--accent); background:var(--note-bg); border-radius:0 6px 6px 0; padding:10px 12px; }
+.scr:empty, body.noscript .scr { display:none; }
+.scr .say { font-size:.88rem; }
+.scr .say::before { content:"Say: "; color:var(--muted); font-size:.74rem; font-weight:600; }
+.scr .do { font-size:.78rem; color:var(--muted); font-style:italic; }
+.scr .ph { font-size:.72rem; font-weight:600; color:var(--accent); letter-spacing:.06em; text-transform:uppercase; }
+.box { border:1px dashed var(--line); border-radius:6px; padding:12px 14px; display:grid; gap:8px; }
+.box-out { font-size:.82rem; color:var(--muted); }
+[hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Intake Note Builder</h1>
+      <p class="sub">Generic template. Builds the case note for your CRM. Runs offline; nothing is saved.</p>
+    </div>
+    <div class="bar">
+      <label for="agent" class="hint">Your first name</label>
+      <input type="text" id="agent" placeholder="For the script" style="width:140px">
+      <div class="chk"><input type="checkbox" id="showscript" checked><label for="showscript">Show call script</label></div>
+      <button type="button" id="btn-new">New lead</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <form class="panel" id="form" autocomplete="off" onsubmit="return false">
+      <p class="safe">Name, email and phone go straight into the CRM, not this form. The note will not copy while a phone, email, address, ID, date of birth, plate, or claim/policy/record number is detected.</p>
+      <p class="safe">In free-text fields, describe roles (the other driver, the store manager), not names or numbers.</p>
+      <p class="safe"><strong>Do not paste this note, or any part of it, into an AI tool.</strong> The form clears after 10 minutes of inactivity and when the tab closes.</p>
+
+      <!-- Compliance checklist -->
+      <div class="card" id="check" role="group" aria-labelledby="check-t">
+        <div class="card-title"><strong id="check-t">Call compliance checklist</strong><span class="badge" id="check-badge">0 of 6 done</span></div>
+        <div class="phase">Opening</div>
+        <div class="chk"><input type="checkbox" id="c-rec"><label for="c-rec">Gave the recording disclosure at the start of the call<span class="tip" id="tip-rec"></span></label></div>
+        <div class="chk"><input type="checkbox" id="c-phone"><label for="c-phone">Verified out loud that the number on file is the best number, including if the call disconnects<span class="tip">A number already in the CRM does not replace verbal verification.</span></label></div>
+        <div class="phase">Contact information</div>
+        <div class="f">
+          <label for="c-age">Age verification</label>
+          <select id="c-age">
+            <option value="">Not verified yet</option>
+            <option value="adult">PC verified 18 or older</option>
+            <option value="minor-ok">PC is under 18, parent/guardian procedure followed</option>
+            <option value="minor-no">PC is under 18, guardian not involved yet</option>
+          </select>
+          <span class="tip">Ask every caller. Never assume age from voice or circumstances.</span>
+        </div>
+        <div class="chk"><input type="checkbox" id="c-src"><label for="c-src">Asked how the PC heard about us, without suggesting an answer<span class="tip">"Social media" or "online" is not enough: ask which one.</span></label></div>
+        <div class="phase">Whole call</div>
+        <div class="chk"><input type="checkbox" id="c-legal"><label for="c-legal">Identified my role correctly and gave no legal advice<span class="tip">No opinions on fault, liability or case strength.</span></label></div>
+        <div class="chk"><input type="checkbox" id="c-promise"><label for="c-promise">Made no promises: acceptance, settlement amount, outcome, or an unconfirmed callback time</label></div>
+      </div>
+
+      <div class="scr" data-phase="opening"></div>
+
+      <h2 class="sec">Contact</h2>
+      <div class="scr" data-phase="contact"></div>
+      <div class="row">
+        <div class="f"><label for="zip">Residence ZIP</label><input type="text" id="zip" inputmode="numeric" placeholder="00000"></div>
+        <div class="f"><label for="behalf">Calling on behalf of</label><input type="text" id="behalf" placeholder="Self, family member, other"></div>
+        <div class="f">
+          <label for="rel">Caller's relationship to PC</label>
+          <select id="rel"><option value="">Not provided</option><option>Self</option><option>Spouse</option><option>Parent</option><option>Child</option><option>Other family</option><option>Friend</option><option>Other</option></select>
+        </div>
+        <div class="f"><label for="heard">How did you hear about us?</label><input type="text" id="heard" placeholder="As the PC said it"><span class="hint">Ask openly. Don't guess.</span></div>
+      </div>
+      <div class="chk"><input type="checkbox" id="dialer"><label for="dialer">Add to dialer</label></div>
+
+      <h2 class="sec">Incident</h2>
+      <div class="scr" data-phase="incident"></div>
+      <div class="row">
+        <div class="f">
+          <label for="type" class="req">Case type</label>
+          <select id="type"></select>
+          <span class="hint">Choose from what the PC described, not the campaign.</span>
+        </div>
+        <div class="f" id="wrap-sub" hidden>
+          <label for="sub">Premises subtype</label>
+          <select id="sub"></select>
+          <span class="hint">Use Other only when the facts point to it.</span>
+        </div>
+      </div>
+      <div class="f">
+        <div class="chk"><input type="checkbox" id="dual"><label for="dual">Facts also fit a second case type</label></div>
+        <div id="wrap-dual" hidden><label for="type2">Second type</label><select id="type2"></select></div>
+      </div>
+      <div class="row">
+        <div class="f"><label for="date">Incident date</label><input type="text" id="date" placeholder="MM/DD/YYYY"><span class="hint">Add the time after it if you have one.</span></div>
+        <div class="f"><label for="city">Incident city</label><input type="text" id="city"></div>
+        <div class="f"><label for="state">Incident state</label><select id="state"></select></div>
+      </div>
+      <div class="f" id="wrap-est" hidden>
+        <label for="est" class="req">Name of establishment / property / employer</label>
+        <input type="text" id="est" placeholder="Business name only">
+        <span class="hint">Name only, no street address.</span>
+      </div>
+      <div class="f"><label for="loc">Location details</label><input type="text" id="loc" placeholder="Freeway, store, intersection"><span class="hint">Cross streets or a landmark only. No house number.</span></div>
+      <div class="f"><label for="what">What happened (as PC reports)</label><textarea id="what" placeholder="PC reports..."></textarea></div>
+      <div class="f"><label for="spec" id="spec-lab">Specific details</label><textarea id="spec"></textarea><span class="hint" id="spec-hint"></span></div>
+
+      <h2 class="sec">Injury</h2>
+      <div class="scr" data-phase="injury"></div>
+      <div class="f">
+        <span class="lab">Serious injuries, select all that apply</span>
+        <div class="checks" id="injchecks"></div>
+        <span class="hint">Check only what the PC stated.</span>
+      </div>
+      <div class="f"><label for="inj">Injuries in the PC's words</label><textarea id="inj"></textarea></div>
+      <div class="f"><label for="tx">Treatment</label><textarea id="tx" placeholder="ER, urgent care, hospital, imaging, other"></textarea></div>
+
+      <h2 class="sec">Legal</h2>
+      <div class="scr" data-phase="legal"></div>
+      <div class="row">
+        <div class="f"><label for="fault">Determined at fault?</label><select id="fault" class="yn"></select><input type="text" id="fault-d" placeholder="Detail, as the PC reported it"></div>
+        <div class="f"><label for="atty">Already represented by an attorney?</label><select id="atty" class="yn"></select></div>
+        <div class="f"><label for="settled">Claim already settled or resolved?</label><select id="settled" class="yn"></select></div>
+      </div>
+      <div class="row">
+        <div class="f"><label for="ins">PC has insurance</label><select id="ins" class="ynd"></select><input type="text" id="ins-d" placeholder="Type, e.g. auto, health"></div>
+        <div class="f"><label for="oins" id="oins-lab">At-fault party insured</label><select id="oins" class="ynd"></select><input type="text" id="oins-d" placeholder="Only if the PC gave it"></div>
+        <div class="f" id="wrap-ocomp"><label for="ocomp">At-fault driver working for a company?</label><select id="ocomp" class="ynd"></select><input type="text" id="ocomp-d" placeholder="Company or vehicle type, if given"></div>
+      </div>
+      <div class="f">
+        <label for="docs">Police report / other documentation</label>
+        <select id="docs" class="ynd"></select>
+        <input type="text" id="docs-d" placeholder="Type only: police report, photos, medical records">
+        <span class="hint">No report or claim numbers.</span>
+      </div>
+      <div class="f"><label for="outcome">Call outcome and next steps</label><textarea id="outcome" placeholder="Write only what you confirmed or did."></textarea></div>
+
+      <h2 class="sec">Recap and transfer</h2>
+      <div class="scr" data-phase="recap"></div>
+
+      <h2 class="sec">Call disposition</h2>
+      <div class="row">
+        <div class="f">
+          <label for="disp" class="req">Call disposition</label>
+          <select id="disp"></select>
+          <span class="hint" id="disp-hint">Pick what actually happened, not what you intended.</span>
+        </div>
+        <div class="f" id="wrap-xfer" hidden>
+          <span class="lab">Transfer check</span>
+          <div class="chk"><input type="checkbox" id="xferok"><label for="xferok">The partner accepted the live connection</label></div>
+        </div>
+        <div class="f" id="wrap-cb" hidden><label for="cbtime">Agreed callback date and time</label><input type="text" id="cbtime" placeholder="MM/DD/YYYY 3:00 PM"></div>
+      </div>
+      <p class="safe">Don't change the lead status by hand. Record the disposition and accurate notes.</p>
+
+      <div class="box">
+        <h2 class="sec" style="margin:0;border:0;padding:0">Polish notes</h2>
+        <span class="hint">Polish fixes spacing, capitals, punctuation and common misspellings. It never adds words or facts: if a change would alter any number or add a new word, that field is left as it was. Check grammar only points out problems; it changes nothing. Both run on this computer only.</span>
+        <div class="bar">
+          <button type="button" class="primary" id="btn-polish">Polish (adds nothing new)</button>
+          <button type="button" id="btn-grammar">Check grammar</button>
+          <button type="button" id="btn-undo" disabled>Undo</button>
+        </div>
+        <div class="box-out" id="polish-out" role="status"></div>
+      </div>
+    </form>
+
+    <section class="panel out" aria-label="Note">
+      <div class="chk"><input type="checkbox" id="compact"><label for="compact">Compact: hide empty lines and list them under Not asked / PC did not know</label></div>
+      <pre id="note"></pre>
+      <div class="bar"><button type="button" class="primary" id="copy">Copy note</button><span class="toast" id="toast" role="status"></span></div>
+      <div class="flags" id="flags"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   SETTINGS — edit this block on your own computer.
+   Put your organization's approved wording and lists here.
+   Do not paste internal scripts or procedures into AI tools to do this.
+   Lines: S("...") = say aloud, D("...") = agent instruction, H("...") = heading.
+   ===================================================================== */
+function S(t) { return { s: t }; } function D(t) { return { d: t }; } function H(t) { return { h: t }; }
+var CONFIG = {
+  firmName: "[Firm Name]",
+  recordingTip: "Use your approved recording disclosure wording.",
+  caseTypes: [
+    { id: "mva", label: "Motor Vehicle Accident (MVA)" },
+    { id: "pl", label: "Premises Liability" },
+    { id: "dog", label: "Dog Bite" },
+    { id: "wc", label: "Workers' Comp" },
+    { id: "other", label: "Other" }
+  ],
+  premisesSubtypes: ["Slip and Fall", "Negligent Security", "Other"],
+  needsEstablishment: ["pl", "wc"],          // case types that require the establishment/employer name
+  seriousInjuries: ["Amputation", "Brain injury", "Death", "Multiple fractures", "Surgery", "Spinal injury"],
+  dispositions: [
+    { group: "Not reached", items: ["No Answer", "Left Voicemail", "Disconnected", "Caller Hung Up"] },
+    { group: "Follow-up", items: ["Schedule Callback", "Does Not Qualify", "General Inquiry", "Do Not Call"] },
+    { group: "Transfer", items: ["Transferred", "Attempted Transfer - Info Sent"] }
+  ],
+  dispTransfer: "Transferred",               // requires "partner accepted" check
+  dispAttempted: "Attempted Transfer - Info Sent",
+  dispCallback: "Schedule Callback",
+  dispDnc: "Do Not Call",
+  script: {
+    opening: [H("Opening"), S("[Approved greeting, including the recording disclosure.] My name is {agent}."),
+      S("[Approved question confirming the best phone number in case the call disconnects.]"),
+      D("Listen and acknowledge the caller's situation before proceeding.")],
+    contact: [H("Contact information"), S("[Approved contact-verification lines.]"),
+      S("[Approved age-verification question.]"), D("If the PC is a minor, follow your parent/guardian procedure."),
+      S("[Approved lead-source question.]")],
+    incident: [H("Incident"), S("[Approved open question about what happened.]"), D("Let the PC explain without interruption."),
+      S("[Approved empathy statement.]"), S("[When and where did it happen?]")],
+    mva: [H("Motor vehicle"), S("[Approved MVA questions.]")],
+    pl: [H("Premises"), S("[Approved premises questions.]"), D("For sensitive incidents, avoid unnecessary or graphic questions.")],
+    dog: [H("Dog bite"), S("[Approved dog bite questions.]")],
+    wc: [H("Workers' comp"), S("[Approved workplace questions.]")],
+    injury: [H("Injury and treatment"), S("[Approved injury and treatment questions.]"), D("Record only what the PC reports; do not diagnose.")],
+    legal: [H("Legal"), S("[Approved legal and qualification questions.]")],
+    recapClose: [S("[Approved transfer and closing lines.]")]
+  }
+};
+/* ===================== END OF SETTINGS ===================== */
+
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var NP = "Not provided", DK = "PC does not know";
+  var STATES = ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","District of Columbia","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"];
+
+  // ---- Build option lists from CONFIG ----
+  function opt(sel, value, text) { var o = document.createElement("option"); o.value = value; o.textContent = text; sel.appendChild(o); }
+  opt($("type"), "", "Not specified");
+  CONFIG.caseTypes.forEach(function (c) { opt($("type"), c.id, c.label); });
+  opt($("type2"), "", "Select");
+  CONFIG.caseTypes.forEach(function (c) { opt($("type2"), c.label, c.label); });
+  opt($("sub"), "", "Not specified");
+  CONFIG.premisesSubtypes.forEach(function (s) { opt($("sub"), s, s); });
+  opt($("state"), "", "Not specified");
+  STATES.forEach(function (s) { opt($("state"), s, s); });
+  Array.prototype.forEach.call(document.querySelectorAll("select.yn"), function (s) { opt(s, "", NP); opt(s, "Yes", "Yes"); opt(s, "No", "No"); });
+  Array.prototype.forEach.call(document.querySelectorAll("select.ynd"), function (s) { opt(s, "", NP); opt(s, "Yes", "Yes"); opt(s, "No", "No"); opt(s, DK, DK); });
+  opt($("disp"), "", "Not selected");
+  CONFIG.dispositions.forEach(function (g) {
+    var og = document.createElement("optgroup"); og.label = g.group;
+    g.items.forEach(function (i) { opt(og, i, i); }); $("disp").appendChild(og);
+  });
+  CONFIG.seriousInjuries.forEach(function (name, i) {
+    var d = document.createElement("div"); d.className = "chk";
+    d.innerHTML = '<input type="checkbox" id="ij' + i + '"><label for="ij' + i + '"></label>';
+    d.querySelector("label").textContent = name; d.querySelector("input").setAttribute("data-v", name);
+    $("injchecks").appendChild(d);
+  });
+  $("tip-rec").textContent = CONFIG.recordingTip;
+
+  var FIELDS = Array.prototype.map.call($("form").querySelectorAll("input, select, textarea"), function (e) { return e.id; }).filter(Boolean).concat(["compact"]);
+  var FREE = ["behalf","heard","date","city","est","loc","what","spec","inj","tx","fault-d","ins-d","oins-d","ocomp-d","docs-d","outcome","cbtime"];
+  var NAMES = { behalf:"Calling on behalf of", heard:"How did you hear", date:"Incident date", city:"Incident city", est:"Establishment name", loc:"Location details", what:"What happened", spec:"Specific details", inj:"Injuries", tx:"Treatment", "fault-d":"Fault detail", "ins-d":"PC insurance detail", "oins-d":"At-fault insurance detail", "ocomp-d":"Company detail", "docs-d":"Documentation type", outcome:"Call outcome", cbtime:"Callback time" };
+
+  function v(id) { var e = $(id); if (!e) return ""; return e.type === "checkbox" ? e.checked : e.value.trim(); }
+  function one(s) { return String(s).replace(/\s*\n+\s*/g, " "); }
+  function yn(sel, det) { var s = v(sel), d = one(v(det)); if (!s && !d) return NP; if (s && d) return s + " - " + d; return s || d; }
+  function typeLabel(id) { for (var i = 0; i < CONFIG.caseTypes.length; i++) if (CONFIG.caseTypes[i].id === id) return CONFIG.caseTypes[i].label; return ""; }
+  function injPicked() { var o = []; CONFIG.seriousInjuries.forEach(function (_, i) { if ($("ij" + i).checked) o.push(CONFIG.seriousInjuries[i]); }); return o; }
+  function cityState() { var c = one(v("city")), s = v("state"); return c && s ? c + ", " + s : (c || s || NP); }
+
+  // ---- Identifier detection (blocks copying) ----
+  var ID_RULES = [
+    /[^\s@]+@[^\s@]+\.[^\s@]+/,                                                   // email
+    /(\+?\d[\d\s().\-]{8,}\d)/,                                                    // phone
+    /\b\d{3}-\d{2}-\d{4}\b/,                                                       // SSN format
+    /\b\d{1,5}\s+(?:[A-Za-z0-9.]+\s+){1,3}(?:st|street|ave|avenue|blvd|boulevard|rd|road|dr|drive|ln|lane|way|ct|court|pkwy|hwy|pl|place|cir|circle)\b\.?/i, // street address
+    /\b(?:dob|d\.o\.b\.|date of birth|born(?: on)?)\b[:\s]*\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}/i, // labeled DOB
+    /\b\d{7,}\b/,                                                                  // long numbers
+    /\b(?!(?:US|SR|HWY|RT|CR)-?\d{1,4}\b)(?=[A-Z0-9-]*\d)(?=[A-Z0-9-]*[A-Z])[A-Z0-9]{2,}-?[A-Z0-9]{3,}\b/ // plate / claim codes
+  ];
+  function idHits() { return FREE.filter(function (id) { var s = v(id); return s && ID_RULES.some(function (r) { return r.test(s); }); }).map(function (id) { return NAMES[id]; }); }
+
+  // ---- Note ----
+  function lines() {
+    var t = v("type"), out = { check: [], what: [], tx: [], legal: [] };
+    var age = { adult: "Verified 18 or older", "minor-ok": "Under 18, guardian procedure followed", "minor-no": "Under 18, guardian not involved yet" };
+    out.check.push({ k: "Recording disclosed", v: v("c-rec") ? "Yes" : "Not confirmed" });
+    out.check.push({ k: "Phone verified verbally", v: v("c-phone") ? "Yes" : "Not confirmed" });
+    out.check.push({ k: "Age verification", v: age[v("c-age")] || "Not verified" });
+    out.what.push({ k: "Case type", v: typeLabel(t) || "Not specified" });
+    if (t === "pl") out.what.push({ k: "Premises subtype", v: v("sub") || "Not specified" });
+    if (v("dual")) out.what.push({ k: "Possible dual case type", v: (typeLabel(t) || "[not specified]") + " and " + (v("type2") || "[not selected]") });
+    out.what.push({ k: "Caller's relationship to PC", v: v("rel") || NP, name: "Caller relationship" });
+    out.what.push({ k: "How the PC heard about us", v: one(v("heard")) || NP, name: "Lead source" });
+    out.what.push({ k: "Incident date", v: one(v("date")) || NP });
+    out.what.push({ k: "Incident city and state", v: cityState() });
+    if (CONFIG.needsEstablishment.indexOf(t) >= 0) out.what.push({ k: "Establishment / employer", v: one(v("est")) || NP });
+    out.what.push({ k: "Location details", v: one(v("loc")) || NP });
+    out.what.push({ k: "What happened (as PC reports)", v: one(v("what")) || NP, name: "What happened" });
+    out.what.push({ k: "Specific details", v: one(v("spec")) || NP });
+    var inj = one(v("inj")), picks = injPicked();
+    out.tx.push({ k: "Injuries (as reported)", v: [inj, picks.length ? "Serious injury selections: " + picks.join(", ") + "." : ""].filter(Boolean).join(" ") || NP, name: "Injuries" });
+    out.tx.push({ k: "Treatment", v: one(v("tx")) || NP });
+    // Fault and insurance: always for MVA; for other types only when answered.
+    function opt2(line) { if (t === "mva" || line.v !== NP) out.legal.push(line); }
+    opt2({ k: "PC at fault (as PC reports)", v: yn("fault", "fault-d"), name: "PC at fault" });
+    out.legal.push({ k: "Represented by an attorney", v: v("atty") || NP, name: "Represented" });
+    out.legal.push({ k: "Claim settled or resolved", v: v("settled") || NP, name: "Settled" });
+    opt2({ k: "PC has insurance", v: yn("ins", "ins-d"), name: "PC insurance" });
+    opt2({ k: $("oins-lab").textContent, v: yn("oins", "oins-d"), name: "At-fault insurance" });
+    if (t === "mva") out.legal.push({ k: "At-fault driver working for a company", v: yn("ocomp", "ocomp-d"), name: "Company driver" });
+    out.legal.push({ k: "Police report / documentation", v: yn("docs", "docs-d"), name: "Documentation" });
+    out.legal.push({ k: "Call outcome and next steps", v: one(v("outcome")) || NP, name: "Call outcome" });
+    if (v("disp")) out.legal.push({ k: "Call disposition", v: v("disp") + (v("disp") === CONFIG.dispCallback && v("cbtime") ? " - " + one(v("cbtime")) : "") });
+    return out;
+  }
+  function buildNote() {
+    var compact = v("compact"), d = lines(), notAsked = [], unknown = [], text = [];
+    function sec(title, arr) {
+      text.push(title);
+      arr.forEach(function (l) {
+        if (compact && l.v === NP) { notAsked.push(l.name || l.k); return; }
+        if (compact && l.v === DK) { unknown.push(l.name || l.k); return; }
+        text.push("- " + l.k + ": " + l.v);
+      });
+    }
+    sec("CALL CHECKS", d.check); sec("WHAT HAPPENED", d.what); sec("INJURY AND TREATMENT", d.tx); sec("LEGAL", d.legal);
+    if (compact && notAsked.length) text.push("Not asked (raise on callback): " + notAsked.join(", "));
+    if (compact && unknown.length) text.push("Asked, PC did not know: " + unknown.join(", "));
+    return text.join("\n");
+  }
+
+  // ---- Flags ----
+  function buildFlags(hits) {
+    var f = [], t = v("type"), d = v("date"), age = v("c-age"), disp = v("disp");
+    if (hits.length) f.push({ bad: true, t: "Possible identifier in: " + hits.join(", ") + ". Remove it before copying." });
+    if (!v("c-rec")) f.push({ bad: true, t: "Recording disclosure not marked. Give it at the start of the call." });
+    if (!v("c-phone")) f.push({ bad: true, t: "Phone number not verified out loud." });
+    if (!age) f.push({ bad: true, t: "Age not verified. Ask every caller; never assume." });
+    if (age === "minor-no") f.push({ bad: true, t: "PC is under 18. Do not continue until the parent/guardian procedure is followed." });
+    if (!v("c-src")) f.push({ bad: true, t: "Lead source question not marked as asked." });
+    else if (!v("heard")) f.push({ t: "Lead source asked but not written down." });
+    else if (/^\s*(social( media)?|online|internet|web(site)?|an? ad)\s*\.?\s*$/i.test(v("heard"))) f.push({ bad: true, t: "Lead source is too general. Ask which one." });
+    if (/\b(right|correct)\?\s*$/i.test(v("heard"))) f.push({ bad: true, t: "Lead source looks like a leading question. Record only the PC's own answer." });
+    if (!t) f.push({ bad: true, t: "Case type is not specified." });
+    if (t === "pl" && !v("sub")) f.push({ t: "Premises subtype not specified." });
+    if (CONFIG.needsEstablishment.indexOf(t) >= 0 && !v("est")) f.push({ bad: true, t: "Establishment / employer name is required for this case type." });
+    if (v("dual") && !v("type2")) f.push({ t: "Select the second case type." });
+    if (!d) f.push({ t: "Incident date is missing." });
+    else if (/\b(yesterday|today|tonight|last (night|week|month|year)|ago)\b/i.test(d)) f.push({ t: "Relative date. Convert it to MM/DD/YYYY." });
+    else if (!/\b\d{1,2}\/\d{1,2}\/\d{4}\b/.test(d)) f.push({ t: "Write the incident date as MM/DD/YYYY." });
+    if (!v("city") || !v("state")) f.push({ t: "Incident city or state is missing." });
+    var promise = /\b(strong case|good case|definitely|guarantee[ds]?|for sure|(?:you'?ll|will) (?:get|receive|win)|settle(?:ment)? (?:of|for) \$|is (?:legally )?(?:responsible|liable)|(?:attorney|lawyer|someone) will (?:call|contact)[^.]*\b(?:(?:in|within)\s+(?:\d+|an?|one|two|few|the next)|today|tonight|tomorrow))\b/i;
+    if (promise.test(v("outcome"))) f.push({ bad: true, t: "Call outcome contains a possible promise or legal conclusion. Write only confirmed next steps." });
+    if (!v("c-legal") || !v("c-promise")) f.push({ t: "Before ending the call, confirm: no legal advice, no promises." });
+    if (!disp) f.push({ bad: true, t: "Call disposition not selected. Every call needs one." });
+    if (disp === CONFIG.dispTransfer && !v("xferok")) f.push({ bad: true, t: "Use \"" + CONFIG.dispTransfer + "\" only if the partner accepted the live connection. Otherwise use \"" + CONFIG.dispAttempted + "\"." });
+    if (disp === CONFIG.dispCallback && !v("cbtime")) f.push({ bad: true, t: "Add the agreed callback date and time." });
+    if (disp === CONFIG.dispDnc && v("dialer")) f.push({ bad: true, t: "Do Not Call selected but Add to dialer is checked. Uncheck it." });
+    return f;
+  }
+
+  // ---- Script ----
+  function recap() {
+    var cs = cityState(), what = one(v("what")), inj = one(v("inj")) || injPicked().join(", ").toLowerCase();
+    return [H("Recap"), S("Let me quickly go over the information to make sure I have everything correct."),
+      S("From what you've shared, the incident happened on " + (one(v("date")) || "[date]") + " in " + (cs === NP ? "[city, state]" : cs) +
+        ". You mentioned that " + (what ? "[summarize in your words: " + what + "]" : "[brief summary]") +
+        ", and you've been experiencing " + (inj || "[reported injuries]") + ". Did I get that right?"),
+      D("Let the PC confirm or correct.")].concat(CONFIG.script.recapClose);
+  }
+  function renderScripts() {
+    var sc = CONFIG.script, t = v("type"), agent = one(v("agent")) || "[your name]";
+    document.body.classList.toggle("noscript", !v("showscript"));
+    var map = { opening: sc.opening, contact: sc.contact, incident: sc.incident.concat(sc[t] || []), injury: sc.injury, legal: sc.legal, recap: recap() };
+    Array.prototype.forEach.call(document.querySelectorAll(".scr"), function (box) {
+      box.textContent = "";
+      (map[box.getAttribute("data-phase")] || []).forEach(function (it) {
+        var el = document.createElement("div");
+        if (it.h) { el.className = "ph"; el.textContent = it.h; }
+        else if (it.s) { el.className = "say"; el.textContent = "“" + it.s.replace(/\{agent\}/g, agent).replace(/\{firm\}/g, CONFIG.firmName) + "”"; }
+        else { el.className = "do"; el.textContent = it.d; }
+        box.appendChild(el);
+      });
+    });
+  }
+
+  // ---- Render ----
+  function render() {
+    var t = v("type"), disp = v("disp");
+    $("wrap-sub").hidden = t !== "pl";
+    $("wrap-dual").hidden = !v("dual");
+    $("wrap-est").hidden = CONFIG.needsEstablishment.indexOf(t) < 0;
+    $("wrap-ocomp").hidden = t && t !== "mva";
+    $("oins-lab").textContent = t === "pl" ? "Property owner insured" : t === "wc" ? "Employer insured" : "At-fault party insured";
+    $("wrap-xfer").hidden = disp !== CONFIG.dispTransfer;
+    $("wrap-cb").hidden = disp !== CONFIG.dispCallback;
+    var ageOk = v("c-age") === "adult" || v("c-age") === "minor-ok";
+    var n = [v("c-rec"), v("c-phone"), ageOk, v("c-src"), v("c-legal"), v("c-promise")].filter(Boolean).length;
+    $("check").classList.toggle("done", n === 6);
+    $("check-badge").textContent = n === 6 ? "All 6 done" : n + " of 6 done";
+    renderScripts();
+    var hits = idHits();
+    $("note").textContent = buildNote();
+    var fl = buildFlags(hits), box = $("flags"); box.textContent = "";
+    if (fl.length) {
+      var h = document.createElement("div"); h.className = "flags-title"; h.textContent = "Flags (not copied)"; box.appendChild(h);
+      fl.forEach(function (x) { var d = document.createElement("div"); d.className = "flag" + (x.bad ? " bad" : ""); d.textContent = x.t; box.appendChild(d); });
+    }
+    $("copy").disabled = hits.length > 0;
+  }
+
+  // ---- Polish (local, rule-based) ----
+  var SPELL = { teh:"the", recieve:"receive", recieved:"received", occured:"occurred", untill:"until", seperate:"separate", wich:"which", alot:"a lot", definately:"definitely", accross:"across", becuase:"because", beleive:"believe", thier:"their", tommorow:"tomorrow", acident:"accident", accidant:"accident", hospitol:"hospital", hosptial:"hospital", docter:"doctor", sholder:"shoulder", surgury:"surgery", sugery:"surgery", ambulence:"ambulance", insurence:"insurance", vehical:"vehicle", intersecton:"intersection", wasnt:"wasn't", didnt:"didn't", doesnt:"doesn't", dont:"don't", cant:"can't", wont:"won't", isnt:"isn't", couldnt:"couldn't", hasnt:"hasn't", havent:"haven't" };
+  var PROPER = { monday:"Monday", tuesday:"Tuesday", wednesday:"Wednesday", thursday:"Thursday", friday:"Friday", saturday:"Saturday", sunday:"Sunday", january:"January", february:"February", april:"April", june:"June", july:"July", august:"August", september:"September", october:"October", november:"November", december:"December", medicaid:"Medicaid", medicare:"Medicare" };
+  var UPPER = { pc:"PC", er:"ER", mri:"MRI", ct:"CT", icu:"ICU", ems:"EMS", i:"I" };
+  function polishText(s, sentence) {
+    if (!s) return s;
+    s = s.replace(/[ \t]+/g, " ").replace(/ *\n */g, "\n").trim();
+    s = s.replace(/([!?])\1+/g, "$1").replace(/,(\s*,)+/g, ",").replace(/(^|[^.])\.{2}(?!\.)/g, "$1.");
+    s = s.replace(/\s+([,.;!?])/g, "$1").replace(/([,;])(?=[^\s\d])/g, "$1 ").replace(/([A-Za-z]{2})\.(?=[A-Za-z]{2})/g, "$1. ");
+    s = s.replace(/\b(the|a|an|and|to|of|in|is|was|on|at)\s+\1\b/gi, "$1");
+    s = s.replace(/\b[A-Za-z]+\b/g, function (w) {
+      var l = w.toLowerCase();
+      if (PROPER.hasOwnProperty(l)) return PROPER[l];
+      if (SPELL.hasOwnProperty(l)) { var r = SPELL[l]; return w[0] !== w[0].toLowerCase() ? r[0].toUpperCase() + r.slice(1) : r; }
+      if (UPPER.hasOwnProperty(l) && w === l) return UPPER[l];
+      return w;
+    });
+    s = s.replace(/(^|[.!?]\s+|\n)([a-z])/g, function (m, p, c) { return p + c.toUpperCase(); });
+    if (sentence && /[A-Za-z0-9)]$/.test(s)) s += ".";
+    return s;
+  }
+  var SENT = ["what", "spec", "inj", "tx", "outcome"], DET = ["loc", "fault-d", "ins-d", "oins-d", "ocomp-d", "docs-d"], undo = null;
+
+  // Safety check: a polished field may only differ by spelling/format. Numbers must be identical,
+  // and every word in the result must come from the original or from a known correction.
+  var ALLOWED_NEW = {};
+  [SPELL, PROPER, UPPER].forEach(function (m) { Object.keys(m).forEach(function (k) { m[k].toLowerCase().split(/\s+/).forEach(function (w) { ALLOWED_NEW[w] = 1; }); }); });
+  function nums(s) { return (s.match(/\d+/g) || []).join("|"); }
+  function words(s) { return s.toLowerCase().match(/[a-z']+/g) || []; }
+  function addsNothing(before, after) {
+    if (nums(before) !== nums(after)) return false;
+    var orig = {}; words(before).forEach(function (w) { orig[w] = 1; });
+    return words(after).every(function (w) { return orig[w] || ALLOWED_NEW[w]; });
+  }
+  $("btn-polish").addEventListener("click", function () {
+    var snap = {}, changed = [], kept = [];
+    SENT.concat(DET).forEach(function (id) {
+      var e = $(id), b = e.value, a = polishText(b, SENT.indexOf(id) >= 0); snap[id] = b;
+      if (a === b) return;
+      if (!addsNothing(b, a)) { kept.push(NAMES[id]); return; }
+      e.value = a; changed.push(NAMES[id]);
+    });
+    var msg = changed.length ? "Polished: " + changed.join(", ") + ". No words or numbers were added. Review before copying." : "Nothing to fix.";
+    if (kept.length) msg += " Left unchanged to be safe: " + kept.join(", ") + ".";
+    $("polish-out").textContent = msg;
+    undo = changed.length ? snap : null; $("btn-undo").disabled = !undo; render();
+  });
+
+  // ---- Check grammar: reports issues, changes nothing ----
+  var GRAMMAR = [
+    { re: /\b(\w+)\s+\1\b/i, msg: function (m) { return "Repeated word: \"" + m[0] + "\""; } },
+    { re: /\ba\s+(?=[aeiou]\w)(?!(?:one|once|uni|use|usu|euro|u\b))\w+/i, msg: function (m) { return "Use \"an\" before a vowel sound: \"" + m[0] + "\""; } },
+    { re: /\ban\s+(?=[bcdfgjklmnpqrstvwxyz])(?!(?:hour|honest|heir|mri|er\b|x-?ray|mva|sb))\w+/i, msg: function (m) { return "Use \"a\" before a consonant sound: \"" + m[0] + "\""; } },
+    { re: /\b(should|could|would|must) of\b/i, msg: function (m) { return "\"" + m[0] + "\" should be \"" + m[1] + " have\""; } },
+    { re: /\b(PC|he|she|it|the client|the driver) (were|have|are|do|don't)\b/, msg: function (m) { return "Subject and verb may not agree: \"" + m[0] + "\""; } },
+    { re: /\b(they|we|you) (was|has|is|does|doesn't)\b/i, msg: function (m) { return "Subject and verb may not agree: \"" + m[0] + "\""; } },
+    { re: /\b(was|were) (went|came|took|saw|drove|ran|fell|hit)\b/i, msg: function (m) { return "Mixed verb forms: \"" + m[0] + "\""; } },
+    { re: /\b(their|there|they're) (was|were|is|are)\b/i, test: function (m) { return m[1].toLowerCase() !== "there"; }, msg: function (m) { return "Did you mean \"there " + m[2] + "\"? Found \"" + m[0] + "\""; } },
+    { re: /\b(alot|irregardless|could care less)\b/i, msg: function (m) { return "Informal or incorrect: \"" + m[0] + "\""; } },
+    { re: /(^|[.!?]\s+)([a-z])/, msg: function () { return "A sentence starts with a lowercase letter."; } },
+    { re: /\s+[,.;!?]/, msg: function () { return "Space before punctuation."; } },
+    { re: / {2,}/, msg: function () { return "Double space."; } }
+  ];
+  function grammarIssues(s, sentence) {
+    var out = [];
+    if (!s) return out;
+    GRAMMAR.forEach(function (g) { var m = s.match(g.re); if (m && (!g.test || g.test(m))) out.push(g.msg(m)); });
+    s.replace(/\b[A-Za-z]+\b/g, function (w) { if (SPELL.hasOwnProperty(w.toLowerCase())) out.push("Spelling: \"" + w + "\" → \"" + SPELL[w.toLowerCase()] + "\""); return w; });
+    if (sentence && /[A-Za-z0-9)]$/.test(s.trim())) out.push("Missing period at the end.");
+    s.split(/[.!?]+/).forEach(function (sen) { var n = (sen.match(/\S+/g) || []).length; if (n > 40) out.push("Long sentence (" + n + " words). Consider splitting it."); });
+    return out;
+  }
+  $("btn-grammar").addEventListener("click", function () {
+    var box = $("polish-out"), total = 0; box.textContent = "";
+    SENT.concat(DET).forEach(function (id) {
+      var issues = grammarIssues($(id).value, SENT.indexOf(id) >= 0);
+      if (!issues.length) return;
+      total += issues.length;
+      var h = document.createElement("div"); h.style.fontWeight = "600"; h.style.marginTop = "6px"; h.textContent = NAMES[id];
+      var ul = document.createElement("ul"); ul.style.margin = "2px 0 0"; ul.style.paddingLeft = "18px";
+      issues.forEach(function (t) { var li = document.createElement("li"); li.textContent = t; ul.appendChild(li); });
+      box.appendChild(h); box.appendChild(ul);
+    });
+    if (!total) box.textContent = "No grammar issues found by the checker. It catches common errors only, so read the note once more.";
+    else { var p = document.createElement("div"); p.style.marginTop = "6px"; p.textContent = total + " possible issue" + (total === 1 ? "" : "s") + ". Fix them yourself, or use Polish for spelling and punctuation."; box.appendChild(p); }
+  });
+  $("btn-undo").addEventListener("click", function () {
+    if (!undo) return; Object.keys(undo).forEach(function (id) { $(id).value = undo[id]; });
+    undo = null; $("btn-undo").disabled = true; $("polish-out").textContent = "Polish undone."; render();
+  });
+
+  // ---- Copy, clear, idle ----
+  function toast(m) { $("toast").textContent = m; setTimeout(function () { $("toast").textContent = ""; }, 2200); }
+  function copyText(text) {
+    function fallback() { var ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); var ok = false; try { ok = document.execCommand("copy"); } catch (e) {} document.body.removeChild(ta); toast(ok ? "Copied" : "Select the text and copy it manually"); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast("Copied"); }, fallback); else fallback();
+  }
+  function clearForm() {
+    FIELDS.forEach(function (id) { var e = $(id); if (!e) return; if (e.type === "checkbox") e.checked = false; else e.value = ""; });
+    undo = null; $("btn-undo").disabled = true; $("polish-out").textContent = "";
+  }
+  var timer = null;
+  function resetIdle() { clearTimeout(timer); timer = setTimeout(function () { clearForm(); render(); toast("Cleared after 10 minutes of inactivity"); }, 10 * 60 * 1000); }
+
+  $("copy").addEventListener("click", function () { if (!idHits().length) copyText(buildNote()); });
+  $("btn-new").addEventListener("click", function () { clearForm(); render(); window.scrollTo(0, 0); toast("New lead started"); });
+  $("form").addEventListener("input", render);
+  $("form").addEventListener("change", render);
+  ["compact", "agent", "showscript"].forEach(function (id) { $(id).addEventListener("input", render); $(id).addEventListener("change", render); });
+  ["input", "change", "keydown", "pointerdown"].forEach(function (ev) { document.addEventListener(ev, resetIdle); });
+  window.addEventListener("pagehide", clearForm);
+
+  window.__test = { polishText: polishText, idHits: idHits, addsNothing: addsNothing, grammarIssues: grammarIssues }; // for automated checks; holds no data
+  render(); resetIdle();
+})();
+</script>
+</body>
+</html>
