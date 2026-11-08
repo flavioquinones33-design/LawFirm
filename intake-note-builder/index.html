@@ -91,6 +91,13 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
 .cons-item { display:flex; gap:10px; align-items:flex-start; justify-content:space-between; font-size:.84rem; padding:7px 10px; border-radius:5px; background:var(--warn-bg); color:var(--warn); }
 .cons-item q { display:block; font-size:.76rem; opacity:.85; font-style:italic; quotes:"\201C" "\201D"; }
 .cons-item button { padding:3px 10px; font-size:.76rem; flex:none; }
+.qr summary { cursor:pointer; font-size:.84rem; font-weight:600; color:var(--accent); }
+.qr { display:grid; gap:8px; }
+.qr[open] { gap:8px; }
+.qr input { margin-top:8px; }
+.qr-item { border-top:1px solid var(--line); padding:7px 2px; font-size:.84rem; }
+.qr-item b { display:block; font-size:.8rem; }
+#qr-list { max-height:40vh; overflow:auto; }
 .box { border:1px dashed var(--line); border-radius:6px; padding:12px 14px; display:grid; gap:8px; }
 .box-out { font-size:.82rem; color:var(--muted); }
 [hidden] { display:none !important; }
@@ -107,9 +114,37 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
       <label for="agent" class="hint">Your first name</label>
       <input type="text" id="agent" placeholder="For the script" style="width:140px">
       <div class="chk"><input type="checkbox" id="showscript" checked><label for="showscript">Show call script</label></div>
+      <button type="button" id="btn-setup" aria-expanded="false" aria-controls="setup">Setup</button>
       <button type="button" id="btn-new">New lead</button>
     </div>
   </header>
+
+  <section class="panel" id="setup" hidden aria-label="Setup">
+    <h2 class="sec" style="margin:0">Setup: load your own lists</h2>
+    <p class="safe">Runs only on this computer; nothing you paste leaves this page. Use it for procedures and lists, <strong>never for client data</strong>. Then click "Download customized copy" and use that file from now on.</p>
+    <div class="row">
+      <div class="f"><label for="s-firm">Firm name</label><input type="text" id="s-firm"></div>
+      <div class="f"><label for="s-cb">Callback number for voicemails</label><input type="text" id="s-cb"></div>
+    </div>
+    <div class="f">
+      <label for="s-disp">Dispositions: paste from Excel</label>
+      <textarea id="s-disp" placeholder="In Excel, select the columns (Group, optional) | Disposition | Definition, press Ctrl+C, then paste here with Ctrl+V."></textarea>
+      <span class="hint">2 columns = Disposition, Definition. 3 or more = Group, Disposition, Definition. A header row is skipped automatically.</span>
+    </div>
+    <div class="f">
+      <label for="s-qr">Quick reference / cheat sheet: paste from Excel</label>
+      <textarea id="s-qr" placeholder="Select the columns Topic | Guidance (extra columns are fine), Ctrl+C, then paste here."></textarea>
+    </div>
+    <div class="row">
+      <div class="f"><label for="s-dup">Duplicate-lead rule</label><textarea id="s-dup" style="min-height:56px"></textarea></div>
+      <div class="f"><label for="s-dupd">Show the rule for these dispositions (comma-separated)</label><input type="text" id="s-dupd"></div>
+    </div>
+    <div class="bar">
+      <button type="button" class="primary" id="s-apply">Apply</button>
+      <button type="button" id="s-save">Download customized copy</button>
+      <span class="box-out" id="s-out" role="status"></span>
+    </div>
+  </section>
 
   <div class="layout">
     <form class="panel" id="form" autocomplete="off" onsubmit="return false">
@@ -260,6 +295,10 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
         </div>
         <div class="f" id="wrap-cb" hidden><label for="cbtime">Agreed callback date and time</label><input type="text" id="cbtime" placeholder="MM/DD/YYYY 3:00 PM"></div>
       </div>
+      <div class="f">
+        <div class="chk"><input type="checkbox" id="dup"><label for="dup">Duplicate lead (this PC has another open lead)</label></div>
+        <span class="hint" id="dup-rule" hidden></span>
+      </div>
       <p class="safe">Don't change the lead status by hand. Record the disposition and accurate notes.</p>
 
       <div class="box">
@@ -281,6 +320,11 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
       <pre id="note"></pre>
       <div class="bar"><button type="button" class="primary" id="copy">Copy note</button><span class="toast" id="toast" role="status"></span></div>
       <div class="flags" id="flags"></div>
+      <details class="qr" id="qr" hidden>
+        <summary id="qr-sum">Quick reference</summary>
+        <input type="text" id="qr-q" placeholder="Search, e.g. callback, transfer, minor" aria-label="Search quick reference">
+        <div id="qr-list"></div>
+      </details>
     </section>
   </div>
 </div>
@@ -322,6 +366,11 @@ var CONFIG = {
   dispTransfer: "Transferred",               // requires "partner accepted" check
   dispAttempted: "Attempted Transfer - Info Sent",
   dispCallback: "Schedule Callback",
+  // Duplicate leads: when "Duplicate lead" is checked and one of these dispositions is chosen, show the rule.
+  duplicateDispositions: ["No Answer"],
+  duplicateRule: "Duplicate lead and no answer: internally decline the NEWEST lead (keep the oldest one open).",
+  dispDefinitions: {},                      // disposition name -> "when it applies" text (filled by Setup)
+  quickReference: [],                       // [{ topic, text }] shown in the Quick reference panel (filled by Setup)
   dispDnc: "Do Not Call",
   /* Consistency checks: compare the PC's story with the structured answers.
      Each rule: id, re (pattern to find in the text), optional "in" (fields to search;
@@ -411,8 +460,14 @@ var CONFIG = {
 };
 /* ===================== END OF SETTINGS ===================== */
 
+/* Customizations saved with Setup > "Download customized copy" are stored here. */
+var CUSTOM = /*CUSTOM-START*/null/*CUSTOM-END*/;
+if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; });
+
 (function () {
   "use strict";
+  // Copy of this page as it was loaded, used to save a customized copy. Taken before any changes.
+  var PRISTINE = "<!doctype html>\n" + document.documentElement.outerHTML;
   var $ = function (id) { return document.getElementById(id); };
   var NP = "Not provided", DK = "PC does not know";
   var STATES = ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","District of Columbia","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"];
@@ -429,11 +484,16 @@ var CONFIG = {
   STATES.forEach(function (s) { opt($("state"), s, s); });
   Array.prototype.forEach.call(document.querySelectorAll("select.yn"), function (s) { opt(s, "", NP); opt(s, "Yes", "Yes"); opt(s, "No", "No"); });
   Array.prototype.forEach.call(document.querySelectorAll("select.ynd"), function (s) { opt(s, "", NP); opt(s, "Yes", "Yes"); opt(s, "No", "No"); opt(s, DK, DK); });
-  opt($("disp"), "", "Not selected");
-  CONFIG.dispositions.forEach(function (g) {
-    var og = document.createElement("optgroup"); og.label = g.group;
-    g.items.forEach(function (i) { opt(og, i, i); }); $("disp").appendChild(og);
-  });
+  function buildDisp() {
+    var sel = $("disp"), keep = sel.value; sel.textContent = "";
+    opt(sel, "", "Not selected");
+    CONFIG.dispositions.forEach(function (g) {
+      var og = document.createElement("optgroup"); og.label = g.group;
+      g.items.forEach(function (i) { opt(og, i, i); }); sel.appendChild(og);
+    });
+    sel.value = keep;
+  }
+  buildDisp();
   CONFIG.seriousInjuries.forEach(function (name, i) {
     var d = document.createElement("div"); d.className = "chk";
     d.innerHTML = '<input type="checkbox" id="ij' + i + '"><label for="ij' + i + '"></label>';
@@ -542,6 +602,7 @@ var CONFIG = {
     if (disp === CONFIG.dispTransfer && !v("xferok")) f.push({ bad: true, t: "Use \"" + CONFIG.dispTransfer + "\" only if the partner accepted the live connection. Otherwise use \"" + CONFIG.dispAttempted + "\"." });
     if (disp === CONFIG.dispCallback && !v("cbtime")) f.push({ bad: true, t: "Add the agreed callback date and time." });
     if (disp === CONFIG.dispDnc && v("dialer")) f.push({ bad: true, t: "Do Not Call selected but Add to dialer is checked. Uncheck it." });
+    if (v("dup") && CONFIG.duplicateDispositions.indexOf(disp) >= 0) f.push({ bad: true, t: CONFIG.duplicateRule });
     return f;
   }
 
@@ -605,6 +666,109 @@ var CONFIG = {
     });
   }
 
+  // ---- Quick reference ----
+  function renderQR() {
+    var items = CONFIG.quickReference || [], q = $("qr-q").value.trim().toLowerCase(), list = $("qr-list");
+    $("qr").hidden = !items.length;
+    $("qr-sum").textContent = "Quick reference (" + items.length + ")";
+    list.textContent = "";
+    items.filter(function (it) { return !q || (it.topic + " " + it.text).toLowerCase().indexOf(q) >= 0; }).forEach(function (it) {
+      var d = document.createElement("div"); d.className = "qr-item";
+      var b = document.createElement("b"); b.textContent = it.topic; d.appendChild(b);
+      d.appendChild(document.createTextNode(it.text)); list.appendChild(d);
+    });
+  }
+  $("qr-q").addEventListener("input", renderQR);
+
+  // ---- Setup: paste from Excel, apply, save a customized copy ----
+  function parseTable(text) {
+    text = String(text || "").replace(/\r\n?/g, "\n");
+    var delim = text.indexOf("\t") >= 0 ? "\t" : ",", rows = [], row = [], cell = "", q = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (q) { if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (c === '"') q = false; else cell += c; }
+      else if (c === '"' && cell === "") q = true;
+      else if (c === delim) { row.push(cell); cell = ""; }
+      else if (c === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
+      else cell += c;
+    }
+    if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+    rows = rows.map(function (r) { return r.map(function (x) { return x.trim(); }); }).filter(function (r) { return r.some(Boolean); });
+    if (rows.length > 1 && /\b(disposition|definition|topic|guidance|group|category|description|when)\b/i.test(rows[0].join(" "))) rows.shift();
+    return rows;
+  }
+  function readDispositions(text) {
+    var groups = {}, order = [], defs = {}, n = 0;
+    parseTable(text).forEach(function (r) {
+      var g, name, def;
+      if (r.length >= 3) { g = r[0] || "Dispositions"; name = r[1]; def = r.slice(2).filter(Boolean).join(" "); }
+      else { g = "Dispositions"; name = r[0]; def = r[1] || ""; }
+      if (!name) return;
+      if (!groups[g]) { groups[g] = []; order.push(g); }
+      if (groups[g].indexOf(name) < 0) { groups[g].push(name); n++; }
+      if (def) defs[name] = def;
+    });
+    return { list: order.map(function (g) { return { group: g, items: groups[g] }; }), defs: defs, count: n };
+  }
+  function readQR(text) {
+    return parseTable(text).map(function (r) { return { topic: r[0], text: r.slice(1).filter(Boolean).join(" — ") }; }).filter(function (x) { return x.topic || x.text; });
+  }
+  function findDisp(names, re, not) { for (var i = 0; i < names.length; i++) if (re.test(names[i]) && !(not && not.test(names[i]))) return names[i]; return ""; }
+  function fillSetup() {
+    $("s-firm").value = CONFIG.firmName; $("s-cb").value = CONFIG.callbackNumber;
+    $("s-dup").value = CONFIG.duplicateRule; $("s-dupd").value = CONFIG.duplicateDispositions.join(", ");
+  }
+  var custom = CUSTOM ? JSON.parse(JSON.stringify(CUSTOM)) : {};
+  function applySetup() {
+    var msg = [];
+    custom.firmName = CONFIG.firmName = $("s-firm").value.trim() || CONFIG.firmName;
+    custom.callbackNumber = CONFIG.callbackNumber = $("s-cb").value.trim() || CONFIG.callbackNumber;
+    custom.duplicateRule = CONFIG.duplicateRule = $("s-dup").value.trim() || CONFIG.duplicateRule;
+    custom.duplicateDispositions = CONFIG.duplicateDispositions = $("s-dupd").value.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+    if ($("s-disp").value.trim()) {
+      var d = readDispositions($("s-disp").value);
+      if (d.count) {
+        var names = [].concat.apply([], d.list.map(function (g) { return g.items; }));
+        CONFIG.dispositions = d.list; CONFIG.dispDefinitions = d.defs;
+        // Match the special dispositions the checks rely on, by name.
+        CONFIG.dispTransfer = findDisp(names, /transferred/i, /attempt/i) || CONFIG.dispTransfer;
+        CONFIG.dispAttempted = findDisp(names, /attempt/i) || CONFIG.dispAttempted;
+        CONFIG.dispCallback = findDisp(names, /call ?back/i) || CONFIG.dispCallback;
+        CONFIG.dispDnc = findDisp(names, /do not call|\bdnc\b/i) || CONFIG.dispDnc;
+        CONFIG.dispVoicemail = findDisp(names, /voice ?mail|\bvm\b/i) || CONFIG.dispVoicemail;
+        ["dispositions", "dispDefinitions", "dispTransfer", "dispAttempted", "dispCallback", "dispDnc", "dispVoicemail"].forEach(function (k) { custom[k] = CONFIG[k]; });
+        buildDisp();
+        msg.push(d.count + " dispositions in " + d.list.length + " group" + (d.list.length === 1 ? "" : "s") + " loaded");
+        var miss = CONFIG.duplicateDispositions.filter(function (x) { return names.indexOf(x) < 0; });
+        if (miss.length) msg.push("Check the duplicate-rule dispositions; not in your list: " + miss.join(", "));
+      } else msg.push("No dispositions found in the pasted text");
+    }
+    if ($("s-qr").value.trim()) {
+      var qr = readQR($("s-qr").value);
+      CONFIG.quickReference = custom.quickReference = qr;
+      msg.push(qr.length + " quick-reference entries loaded");
+    }
+    $("s-out").textContent = (msg.length ? msg.join(". ") + ". " : "") + "Applied. Download a customized copy to keep it.";
+    render(); renderQR();
+  }
+  function saveCopy() {
+    applySetup();
+    var json = JSON.stringify(custom).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+    var html = PRISTINE.replace(/\/\*CUSTOM-START\*\/[\s\S]*?\/\*CUSTOM-END\*\//, function () { return "/*CUSTOM-START*/" + json + "/*CUSTOM-END*/"; });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    a.download = "Intake_Note_Builder_custom.html";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    $("s-out").textContent = "Downloaded Intake_Note_Builder_custom.html. Open that file from now on.";
+  }
+  $("btn-setup").addEventListener("click", function () {
+    var open = $("setup").hidden; $("setup").hidden = !open; $("btn-setup").setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) fillSetup();
+  });
+  $("s-apply").addEventListener("click", applySetup);
+  $("s-save").addEventListener("click", saveCopy);
+
   // ---- Voicemail ----
   var vmLang = "en";
   function renderVoicemail() {
@@ -634,6 +798,9 @@ var CONFIG = {
     $("oins-lab").textContent = t === "pl" ? "Property owner insured" : t === "wc" ? "Employer insured" : "At-fault party insured";
     $("wrap-xfer").hidden = disp !== CONFIG.dispTransfer;
     $("wrap-cb").hidden = disp !== CONFIG.dispCallback;
+    $("disp-hint").textContent = CONFIG.dispDefinitions[disp] || "Pick what actually happened, not what you intended.";
+    $("dup-rule").hidden = !v("dup");
+    $("dup-rule").textContent = "Rule: " + CONFIG.duplicateRule + " (applies to: " + CONFIG.duplicateDispositions.join(", ") + ")";
     var ageOk = v("c-age") === "adult" || v("c-age") === "minor-ok";
     var n = [v("c-rec"), v("c-phone"), ageOk, v("c-src"), v("c-legal"), v("c-promise")].filter(Boolean).length;
     $("check").classList.toggle("done", n === 6);
@@ -777,7 +944,7 @@ var CONFIG = {
   window.addEventListener("pagehide", clearForm);
 
   window.__test = { polishText: polishText, idHits: idHits, addsNothing: addsNothing, grammarIssues: grammarIssues, consistency: consistency }; // for automated checks; holds no data
-  render(); resetIdle();
+  render(); renderQR(); resetIdle();
 })();
 </script>
 </body>
