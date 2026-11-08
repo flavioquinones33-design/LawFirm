@@ -73,6 +73,14 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
 .scr .say::before { content:"Say: "; color:var(--muted); font-size:.74rem; font-weight:600; }
 .scr .do { font-size:.78rem; color:var(--muted); font-style:italic; }
 .scr .ph { font-size:.72rem; font-weight:600; color:var(--accent); letter-spacing:.06em; text-transform:uppercase; }
+.avoid summary { cursor:pointer; font-size:.84rem; font-weight:500; color:var(--accent); }
+.avoid table { width:100%; border-collapse:collapse; font-size:.8rem; margin-top:6px; }
+.avoid th, .avoid td { text-align:left; vertical-align:top; padding:5px 6px; border-top:1px solid var(--line); }
+.avoid td:first-child { color:var(--danger); }
+.af { border-radius:6px; padding:10px 12px; font-size:.86rem; display:grid; gap:4px; background:var(--danger-bg); color:var(--danger); }
+.af.ok { background:var(--note-bg); color:var(--accent); border:1px solid var(--accent); }
+.af strong { font-size:.74rem; letter-spacing:.12em; text-transform:uppercase; }
+.af ul { margin:0; padding-left:18px; }
 .box { border:1px dashed var(--line); border-radius:6px; padding:12px 14px; display:grid; gap:8px; }
 .box-out { font-size:.82rem; color:var(--muted); }
 [hidden] { display:none !important; }
@@ -101,7 +109,8 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
 
       <!-- Compliance checklist -->
       <div class="card" id="check" role="group" aria-labelledby="check-t">
-        <div class="card-title"><strong id="check-t">Call compliance checklist</strong><span class="badge" id="check-badge">0 of 6 done</span></div>
+        <div class="card-title"><strong id="check-t">Autofail prevention checklist</strong><span class="badge" id="check-badge">0 of 6 done</span></div>
+        <span class="tip">Each item below is a critical requirement. Missing one can fail the call in QA review.</span>
         <div class="phase">Opening</div>
         <div class="chk"><input type="checkbox" id="c-rec"><label for="c-rec">Gave the recording disclosure at the start of the call<span class="tip" id="tip-rec"></span></label></div>
         <div class="chk"><input type="checkbox" id="c-phone"><label for="c-phone">Verified out loud that the number on file is the best number, including if the call disconnects<span class="tip">A number already in the CRM does not replace verbal verification.</span></label></div>
@@ -119,7 +128,22 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
         <div class="chk"><input type="checkbox" id="c-src"><label for="c-src">Asked how the PC heard about us, without suggesting an answer<span class="tip">"Social media" or "online" is not enough: ask which one.</span></label></div>
         <div class="phase">Whole call</div>
         <div class="chk"><input type="checkbox" id="c-legal"><label for="c-legal">Identified my role correctly and gave no legal advice<span class="tip">No opinions on fault, liability or case strength.</span></label></div>
-        <div class="chk"><input type="checkbox" id="c-promise"><label for="c-promise">Made no promises: acceptance, settlement amount, outcome, or an unconfirmed callback time</label></div>
+        <div class="chk"><input type="checkbox" id="c-promise"><label for="c-promise">Made no promises: acceptance, settlement amount, outcome, or an unconfirmed callback time<span class="tip">A transfer or referral does not guarantee representation.</span></label></div>
+        <details class="avoid">
+          <summary>Say this, not that</summary>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th>Avoid</th><th>Instead</th></tr></thead>
+            <tbody>
+              <tr><td>Starting the intake with only a greeting</td><td>Give the recording disclosure first, in your approved wording.</td></tr>
+              <tr><td>"I see your number here, so we're good."</td><td>Ask which number is best to reach them if the call drops.</td></tr>
+              <tr><td>"You sound like an adult, so I'll skip that."</td><td>Ask every caller to confirm they are 18 or older.</td></tr>
+              <tr><td>"You saw our TV ad, right?"</td><td>Ask an open question and record their exact answer.</td></tr>
+              <tr><td>"That's clearly the other driver's fault."</td><td>"I'll note what you described. A legal professional reviews who is responsible."</td></tr>
+              <tr><td>"You'll get a big settlement."</td><td>"An attorney would need to review your situation before discussing any outcome."</td></tr>
+              <tr><td>"Someone will call you back within the hour."</td><td>Share only next steps and timelines you have confirmed.</td></tr>
+            </tbody>
+          </table></div>
+        </details>
       </div>
 
       <div class="scr" data-phase="opening"></div>
@@ -230,6 +254,7 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
     </form>
 
     <section class="panel out" aria-label="Note">
+      <div class="af" id="af" role="status"></div>
       <div class="chk"><input type="checkbox" id="compact"><label for="compact">Compact: hide empty lines and list them under Not asked / PC did not know</label></div>
       <pre id="note"></pre>
       <div class="bar"><button type="button" class="primary" id="copy">Copy note</button><span class="toast" id="toast" role="status"></span></div>
@@ -461,6 +486,20 @@ var CONFIG = {
     var n = [v("c-rec"), v("c-phone"), ageOk, v("c-src"), v("c-legal"), v("c-promise")].filter(Boolean).length;
     $("check").classList.toggle("done", n === 6);
     $("check-badge").textContent = n === 6 ? "All 6 done" : n + " of 6 done";
+    // Autofail summary next to the note
+    var age = v("c-age"), risks = [];
+    if (!v("c-rec")) risks.push("Recording disclosure");
+    if (!v("c-phone")) risks.push("Phone verification");
+    if (!age) risks.push("Age verification");
+    if (age === "minor-no") risks.push("Minor without parent/guardian procedure");
+    if (!v("c-src")) risks.push("Lead source question");
+    if (!v("c-legal")) risks.push("No legal advice (not confirmed)");
+    if (!v("c-promise")) risks.push("No promises (not confirmed)");
+    if (/\b(strong case|good case|definitely|guarantee[ds]?|for sure|(?:you'?ll|will) (?:get|receive|win)|is (?:legally )?(?:responsible|liable))\b/i.test(v("outcome"))) risks.push("Possible promise or legal conclusion in Call outcome");
+    var af = $("af"); af.textContent = ""; af.classList.toggle("ok", !risks.length);
+    var st = document.createElement("strong"); st.textContent = risks.length ? "Autofail risks: " + risks.length : "Autofail check: all clear"; af.appendChild(st);
+    if (risks.length) { var ul = document.createElement("ul"); risks.forEach(function (r) { var li = document.createElement("li"); li.textContent = r; ul.appendChild(li); }); af.appendChild(ul); }
+    else { var ok = document.createElement("span"); ok.textContent = "All six critical items are marked. QA review is still the official check."; af.appendChild(ok); }
     renderScripts();
     var hits = idHits();
     $("note").textContent = buildNote();
