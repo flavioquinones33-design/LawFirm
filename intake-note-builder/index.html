@@ -81,6 +81,10 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
 .af.ok { background:var(--note-bg); color:var(--accent); border:1px solid var(--accent); }
 .af strong { font-size:.74rem; letter-spacing:.12em; text-transform:uppercase; }
 .af ul { margin:0; padding-left:18px; }
+.vm { display:grid; gap:8px; border-left:3px solid var(--accent); background:var(--note-bg); border-radius:0 6px 6px 0; padding:10px 12px; }
+.vm-text { margin:0; font-size:.92rem; line-height:1.5; }
+.vm-lang { padding:4px 12px; font-size:.82rem; }
+.vm-lang[aria-pressed="true"] { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
 .box { border:1px dashed var(--line); border-radius:6px; padding:12px 14px; display:grid; gap:8px; }
 .box-out { font-size:.82rem; color:var(--muted); }
 [hidden] { display:none !important; }
@@ -226,6 +230,17 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
       <h2 class="sec">Recap and transfer</h2>
       <div class="scr" data-phase="recap"></div>
 
+      <h2 class="sec">Voicemail</h2>
+      <div class="vm">
+        <div class="bar" role="group" aria-label="Voicemail language">
+          <button type="button" class="vm-lang" data-lang="en" aria-pressed="true">English</button>
+          <button type="button" class="vm-lang" data-lang="es" aria-pressed="false">Español</button>
+        </div>
+        <p class="vm-text" id="vm-text" lang="en"></p>
+        <span class="hint">Say only this. Never mention the case, injuries or why they contacted us.</span>
+        <div class="bar"><button type="button" id="btn-vm">Voicemail left: set disposition</button></div>
+      </div>
+
       <h2 class="sec">Call disposition</h2>
       <div class="row">
         <div class="f">
@@ -273,6 +288,14 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
 function S(t) { return { s: t }; } function D(t) { return { d: t }; } function H(t) { return { h: t }; }
 var CONFIG = {
   firmName: "[Firm Name]",
+  callbackNumber: "[callback number]",       // the public number callers should dial back
+  dispVoicemail: "Left Voicemail",           // disposition set by the "Voicemail left" button
+  // Voicemail scripts. {agent}, {firm} and {callback} are filled in automatically.
+  // Never add case details, injuries or the reason for the call to a voicemail.
+  voicemail: {
+    en: "Hi! This is {agent} calling from {firm}. We're following up on your recent inquiry and would love the opportunity to speak with you. When you have a chance, please give us a call back at {callback}. Thank you, and have a wonderful day!",
+    es: "¡Hola! Le habla {agent} de {firm}. Le estamos llamando para darle seguimiento a una consulta que nos hizo recientemente y nos gustaría tener la oportunidad de conversar con usted. Cuando tenga la oportunidad, por favor devuélvanos la llamada al {callback}. ¡Muchas gracias y que tenga un excelente día!"
+  },
   recordingTip: "Use your approved recording disclosure wording.",
   caseTypes: [
     { id: "mva", label: "Motor Vehicle Accident (MVA)" },
@@ -472,8 +495,26 @@ var CONFIG = {
     });
   }
 
+  // ---- Voicemail ----
+  var vmLang = "en";
+  function renderVoicemail() {
+    var agent = one(v("agent")) || "[your name]";
+    var t = (CONFIG.voicemail[vmLang] || "").replace(/\{agent\}/g, agent).replace(/\{firm\}/g, CONFIG.firmName).replace(/\{callback\}/g, CONFIG.callbackNumber);
+    $("vm-text").textContent = "“" + t + "”";
+    $("vm-text").setAttribute("lang", vmLang);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".vm-lang"), function (b) {
+    b.addEventListener("click", function () {
+      vmLang = b.getAttribute("data-lang");
+      Array.prototype.forEach.call(document.querySelectorAll(".vm-lang"), function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      renderVoicemail();
+    });
+  });
+  $("btn-vm").addEventListener("click", function () { $("disp").value = CONFIG.dispVoicemail; render(); toast("Disposition set to " + CONFIG.dispVoicemail); });
+
   // ---- Render ----
   function render() {
+    renderVoicemail();
     var t = v("type"), disp = v("disp");
     $("wrap-sub").hidden = t !== "pl";
     $("wrap-dual").hidden = !v("dual");
