@@ -91,6 +91,29 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
 .cons-item { display:flex; gap:10px; align-items:flex-start; justify-content:space-between; font-size:.84rem; padding:7px 10px; border-radius:5px; background:var(--warn-bg); color:var(--warn); }
 .cons-item q { display:block; font-size:.76rem; opacity:.85; font-style:italic; quotes:"\201C" "\201D"; }
 .cons-item button { padding:3px 10px; font-size:.76rem; flex:none; }
+.tabs { display:flex; gap:4px; border-bottom:1px solid var(--line); }
+.tab { border:0; border-bottom:2px solid transparent; border-radius:0; background:none; padding:8px 12px; color:var(--muted); }
+.tab[aria-selected="true"] { color:var(--fg); border-bottom-color:var(--accent); }
+.sheet { display:grid; max-height:58vh; overflow:auto; border:1px solid var(--line); border-radius:5px; }
+.sr { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr) auto; gap:10px; align-items:center; padding:7px 10px; border-top:1px solid var(--line); font-size:.85rem; }
+.sr:first-child { border-top:0; }
+.sr .k { color:var(--muted); }
+.sr .val { overflow-wrap:anywhere; }
+.sr .none { color:var(--muted); font-style:italic; }
+.sr.cur { background:var(--warn-bg); }
+.sr.done .k::before { content:"\2713  "; color:var(--accent); font-weight:700; }
+.sr button { padding:3px 10px; font-size:.76rem; }
+.dr { display:grid; gap:6px; border:1px solid var(--line); border-radius:6px; padding:10px 12px; }
+.dr-title { font-size:.74rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+.dr .chk { font-size:.84rem; }
+.dr .act { display:block; font-size:.78rem; color:var(--danger); font-weight:500; }
+.scr .say.done { opacity:.5; text-decoration:line-through; }
+.scr .say.next { background:var(--warn-bg); color:var(--fg); border-radius:4px; padding:4px 6px; outline:2px solid var(--warn); }
+.scr .say.next::after { content:"  \2190 ask next"; color:var(--warn); font-size:.74rem; font-weight:600; }
+.keys summary { cursor:pointer; font-size:.8rem; color:var(--accent); }
+.keys table { font-size:.78rem; border-collapse:collapse; margin-top:4px; }
+.keys td { padding:2px 8px 2px 0; }
+kbd { font:600 .74rem var(--mono); border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; padding:0 4px; background:var(--surface); }
 .qr summary { cursor:pointer; font-size:.84rem; font-weight:600; color:var(--accent); }
 .qr { display:grid; gap:8px; }
 .qr[open] { gap:8px; }
@@ -114,6 +137,16 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
       <label for="agent" class="hint">Your first name</label>
       <input type="text" id="agent" placeholder="For the script" style="width:140px">
       <div class="chk"><input type="checkbox" id="showscript" checked><label for="showscript">Show call script</label></div>
+      <details class="keys">
+        <summary>Shortcuts</summary>
+        <table>
+          <tr><td><kbd>Alt</kbd>+<kbd>1</kbd>…<kbd>6</kbd></td><td>Checklist, Contact, Incident, Injury, Legal, Disposition</td></tr>
+          <tr><td><kbd>Alt</kbd>+<kbd>B</kbd></td><td>Select the next ___ blank</td></tr>
+          <tr><td><kbd>Alt</kbd>+<kbd>C</kbd></td><td>Copy the next CRM field</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>Copy the note</td></tr>
+          <tr><td><kbd>Alt</kbd>+<kbd>N</kbd></td><td>New lead (asks first)</td></tr>
+        </table>
+      </details>
       <button type="button" id="btn-setup" aria-expanded="false" aria-controls="setup">Setup</button>
       <button type="button" id="btn-new">New lead</button>
     </div>
@@ -138,6 +171,11 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
     <div class="row">
       <div class="f"><label for="s-dup">Duplicate-lead rule</label><textarea id="s-dup" style="min-height:56px"></textarea></div>
       <div class="f"><label for="s-dupd">Show the rule for these dispositions (comma-separated)</label><input type="text" id="s-dupd"></div>
+    </div>
+    <div class="f">
+      <label for="s-dr">Qualify / decline rules: paste from Excel or type one per line</label>
+      <textarea id="s-dr" placeholder="Rule | What to do&#10;Example: PC already has an attorney | Internally decline; select the turn-down reason"></textarea>
+      <span class="hint">Two columns (Rule, What to do), or "Rule | What to do" per line. They appear as a checklist next to the note.</span>
     </div>
     <div class="bar">
       <button type="button" class="primary" id="s-apply">Apply</button>
@@ -193,7 +231,7 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
 
       <div class="scr" data-phase="opening"></div>
 
-      <h2 class="sec">Contact</h2>
+      <h2 class="sec" id="sec-contact" tabindex="-1">Contact</h2>
       <div class="scr" data-phase="contact"></div>
       <div class="row">
         <div class="f"><label for="zip">Residence ZIP</label><input type="text" id="zip" inputmode="numeric" placeholder="00000"></div>
@@ -206,7 +244,7 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
       </div>
       <div class="chk"><input type="checkbox" id="dialer"><label for="dialer">Add to dialer</label></div>
 
-      <h2 class="sec">Incident</h2>
+      <h2 class="sec" id="sec-incident" tabindex="-1">Incident</h2>
       <div class="scr" data-phase="incident"></div>
       <div class="row">
         <div class="f">
@@ -238,7 +276,7 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
       <div class="f"><label for="what">What happened (as PC reports)</label><textarea id="what" placeholder="PC reports..."></textarea></div>
       <div class="f"><label for="spec" id="spec-lab">Specific details</label><textarea id="spec"></textarea><span class="hint" id="spec-hint"></span></div>
 
-      <h2 class="sec">Injury</h2>
+      <h2 class="sec" id="sec-injury" tabindex="-1">Injury</h2>
       <div class="scr" data-phase="injury"></div>
       <div class="f">
         <span class="lab">Serious injuries, select all that apply</span>
@@ -248,7 +286,7 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
       <div class="f"><label for="inj">Injuries in the PC's words</label><textarea id="inj"></textarea></div>
       <div class="f"><label for="tx">Treatment</label><textarea id="tx" placeholder="ER, urgent care, hospital, imaging, other"></textarea></div>
 
-      <h2 class="sec">Legal</h2>
+      <h2 class="sec" id="sec-legal" tabindex="-1">Legal</h2>
       <div class="scr" data-phase="legal"></div>
       <div class="row">
         <div class="f"><label for="fault">Determined at fault?</label><select id="fault" class="yn"></select><input type="text" id="fault-d" placeholder="Detail, as the PC reported it"></div>
@@ -287,7 +325,7 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
         <div class="bar"><button type="button" id="btn-vm">Voicemail left: set disposition</button></div>
       </div>
 
-      <h2 class="sec">Call disposition</h2>
+      <h2 class="sec" id="sec-disp" tabindex="-1">Call disposition</h2>
       <div class="row">
         <div class="f">
           <label for="disp" class="req">Call disposition</label>
@@ -321,9 +359,27 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
     <section class="panel out" aria-label="Note">
       <div class="af" id="af" role="status"></div>
       <div class="cons" id="cons" aria-live="polite"></div>
-      <div class="chk"><input type="checkbox" id="compact"><label for="compact">Compact: hide empty lines and list them under Not asked / PC did not know</label></div>
-      <pre id="note"></pre>
-      <div class="bar"><button type="button" class="primary" id="copy">Copy note</button><span class="toast" id="toast" role="status"></span></div>
+      <div class="dr" id="dr" hidden>
+        <div class="dr-title">Qualify / decline check</div>
+        <div id="dr-list"></div>
+      </div>
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab" role="tab" id="tab-note" aria-selected="true" aria-controls="p-note">Note</button>
+        <button type="button" class="tab" role="tab" id="tab-crm" aria-selected="false" aria-controls="p-crm">CRM fields</button>
+      </div>
+      <div id="p-note" role="tabpanel" aria-labelledby="tab-note" style="display:grid;gap:12px">
+        <div class="chk"><input type="checkbox" id="compact"><label for="compact">Compact: hide empty lines and list them under Not asked / PC did not know</label></div>
+        <pre id="note"></pre>
+      </div>
+      <div id="p-crm" role="tabpanel" aria-labelledby="tab-crm" hidden style="display:grid;gap:8px">
+        <span class="hint">Enter each fact once here, then copy it into the CRM. Alt+C copies the next field and moves on; switch to the CRM, paste, come back, repeat.</span>
+        <div class="sheet" id="sheet"></div>
+      </div>
+      <div class="bar">
+        <button type="button" class="primary" id="copy">Copy note</button>
+        <button type="button" id="copy-next">Copy next CRM field</button>
+        <span class="toast" id="toast" role="status"></span>
+      </div>
       <div class="flags" id="flags"></div>
       <details class="qr" id="qr" hidden>
         <summary id="qr-sum">Quick reference</summary>
@@ -341,7 +397,9 @@ pre { margin:0; font:.8rem/1.55 var(--mono); white-space:pre-wrap; overflow-wrap
    Do not paste internal scripts or procedures into AI tools to do this.
    Lines: S("...") = say aloud, D("...") = agent instruction, H("...") = heading.
    ===================================================================== */
-function S(t) { return { s: t }; } function D(t) { return { d: t }; } function H(t) { return { h: t }; }
+// S(text, fields): a line to say. "fields" (optional) = field id(s) that count as answered,
+// so the tool can highlight the next unanswered question.
+function S(t, f) { return { s: t, f: f ? [].concat(f) : null }; } function D(t) { return { d: t }; } function H(t) { return { h: t }; }
 var CONFIG = {
   firmName: "[Firm Name]",
   callbackNumber: "[callback number]",       // the public number callers should dial back
@@ -445,23 +503,65 @@ var CONFIG = {
       when: function (f) { return f("disp") !== CONFIG.dispCallback; },
       msg: "Outcome mentions a callback. If one was agreed, select Schedule Callback and add the time." }
   ],
+  // Replace each [bracketed topic] with your approved wording. The second value links the
+  // question to the field that answers it (used for the next-question highlight).
   script: {
-    opening: [H("Opening"), S("[Approved greeting, including the recording disclosure.] My name is {agent}."),
-      S("[Approved question confirming the best phone number in case the call disconnects.]"),
+    opening: [H("Opening"), S("[Approved greeting, including the recording disclosure.] My name is {agent}.", "c-rec"),
+      S("[Approved question confirming the best phone number in case the call disconnects.]", "c-phone"),
       D("Listen and acknowledge the caller's situation before proceeding.")],
-    contact: [H("Contact information"), S("[Approved contact-verification lines.]"),
-      S("[Approved age-verification question.]"), D("If the PC is a minor, follow your parent/guardian procedure."),
-      S("[Approved lead-source question.]")],
-    incident: [H("Incident"), S("[Approved open question about what happened.]"), D("Let the PC explain without interruption."),
-      S("[Approved empathy statement.]"), S("[When and where did it happen?]")],
-    mva: [H("Motor vehicle"), S("[Approved MVA questions.]")],
-    pl: [H("Premises"), S("[Approved premises questions.]"), D("For sensitive incidents, avoid unnecessary or graphic questions.")],
-    dog: [H("Dog bite"), S("[Approved dog bite questions.]")],
-    wc: [H("Workers' comp"), S("[Approved workplace questions.]")],
-    injury: [H("Injury and treatment"), S("[Approved injury and treatment questions.]"), D("Record only what the PC reports; do not diagnose.")],
-    legal: [H("Legal"), S("[Approved legal and qualification questions.]")],
+    contact: [H("Contact information"), S("[ZIP code]", "zip"),
+      S("[Own incident or on behalf of someone else?]", ["behalf", "rel"]),
+      S("[Approved age-verification question.]", "c-age"), D("If the PC is a minor, follow your parent/guardian procedure."),
+      S("[Approved lead-source question.]", "heard")],
+    incident: [H("Incident"), S("[Approved open question about what happened.]", "what"), D("Let the PC explain without interruption."),
+      S("[Approved empathy statement.]"), S("[When did it happen?]", "date"), S("[City and state?]", ["city", "state"])],
+    mva: [H("Motor vehicle"), S("[Driver, passenger, pedestrian or cyclist?]", "spec"), S("[How the collision happened]", "spec"),
+      S("[Other people in the vehicle, and were they hurt?]", "spec"), S("[Police report?]", "docs")],
+    pl: [H("Premises"), S("[Type of property and what it is called]", "est"), S("[What caused the incident?]", "spec"),
+      S("[Who owns or manages it?]", "spec"), S("[Reported to anyone there?]", "docs"),
+      D("For sensitive incidents, avoid unnecessary or graphic questions.")],
+    dog: [H("Dog bite"), S("[What happened when the dog approached?]", "spec"), S("[Who owns the dog?]", "spec"),
+      S("[Reported to animal control or police?]", "docs"), S("[Working at the time?]", "spec")],
+    wc: [H("Workers' comp"), S("[Employer name]", "est"), S("[Job duties and how the injury happened]", "spec"),
+      S("[Reported to the employer?]", "docs"), S("[Anyone outside the company involved?]", "spec")],
+    injury: [H("Injury and treatment"), S("[Injuries, pain or discomfort]", "inj"), S("[Treatment so far: ER, urgent care, imaging, doctor]", "tx"),
+      D("Record only what the PC reports; do not diagnose.")],
+    legal: [H("Legal"), S("[Found at fault?]", "fault"), S("[Already represented by an attorney?]", "atty"),
+      S("[Claim settled or resolved?]", "settled"), S("[Insurance coverage]", ["ins", "oins"])],
     recapClose: [S("[Approved transfer and closing lines.]")]
-  }
+  },
+  // Starter text for "What happened", per case type. ___ marks a blank to fill (Alt+B jumps to it).
+  templates: {
+    mva: "PC reports being the ___ when ___ on ___.",
+    pl: "PC reports ___ at ___ when ___.",
+    dog: "PC reports being bitten by a dog at ___ when ___.",
+    wc: "PC reports being injured at work while ___ when ___.",
+    other: "PC reports ___."
+  },
+  // CRM fields in the order they appear on your CRM screen. Alt+C copies them one by one.
+  // value: a field id, or a special key: casetype, injuries, disposition, note.
+  crmFields: [
+    { label: "Residence ZIP", value: "zip" },
+    { label: "Calling on behalf of", value: "behalf" },
+    { label: "How did you hear about us?", value: "heard" },
+    { label: "Case type", value: "casetype" },
+    { label: "Premises subtype", value: "sub" },
+    { label: "Incident date", value: "date" },
+    { label: "Incident city", value: "city" },
+    { label: "Incident state", value: "state" },
+    { label: "Establishment / employer", value: "est" },
+    { label: "Serious injuries", value: "injuries" },
+    { label: "Treatment", value: "tx" },
+    { label: "Determined at fault?", value: "fault" },
+    { label: "Represented by an attorney?", value: "atty" },
+    { label: "Claim settled or resolved?", value: "settled" },
+    { label: "PC has insurance", value: "ins" },
+    { label: "At-fault party insured", value: "oins" },
+    { label: "At-fault driver working for a company?", value: "ocomp" },
+    { label: "Call disposition", value: "disposition" },
+    { label: "General Information note", value: "note" }
+  ],
+  declineRules: []                          // [{ rule, action }] loaded in Setup from your own list
 };
 /* ===================== END OF SETTINGS ===================== */
 
@@ -562,6 +662,8 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
     out.legal.push({ k: "Police report / documentation", v: yn("docs", "docs-d"), name: "Documentation" });
     out.legal.push({ k: "Call outcome and next steps", v: one(v("outcome")) || NP, name: "Call outcome" });
     if (v("disp")) out.legal.push({ k: "Call disposition", v: v("disp") + (v("disp") === CONFIG.dispCallback && v("cbtime") ? " - " + one(v("cbtime")) : "") });
+    var dr = drChecked();
+    if (dr.length) out.legal.push({ k: "Decline criteria noted", v: dr.map(function (r) { return r.rule; }).join("; ") });
     return out;
   }
   function buildNote() {
@@ -608,6 +710,9 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
     if (disp === CONFIG.dispCallback && !v("cbtime")) f.push({ bad: true, t: "Add the agreed callback date and time." });
     if (disp === CONFIG.dispDnc && v("dialer")) f.push({ bad: true, t: "Do Not Call selected but Add to dialer is checked. Uncheck it." });
     if (v("dup") && CONFIG.duplicateDispositions.indexOf(disp) >= 0) f.push({ bad: true, t: CONFIG.duplicateRule });
+    var bl = blankHits();
+    if (bl.length) f.push({ bad: true, t: "Fill in or delete the ___ blanks in: " + bl.join(", ") + ". Alt+B jumps to the next one." });
+    drChecked().forEach(function (r) { f.push({ bad: true, t: "Decline criterion: " + r.rule + (r.action ? " → " + r.action : "") }); });
     return f;
   }
 
@@ -629,11 +734,20 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
       (map[box.getAttribute("data-phase")] || []).forEach(function (it) {
         var el = document.createElement("div");
         if (it.h) { el.className = "ph"; el.textContent = it.h; }
-        else if (it.s) { el.className = "say"; el.textContent = "“" + it.s.replace(/\{agent\}/g, agent).replace(/\{firm\}/g, CONFIG.firmName) + "”"; }
+        else if (it.s) {
+          el.className = "say"; el.textContent = "“" + it.s.replace(/\{agent\}/g, agent).replace(/\{firm\}/g, CONFIG.firmName) + "”";
+          if (it.f) {
+            var answered = it.f.some(function (id) { var x = v(id); return x !== "" && x !== false && !/_{3,}/.test(String(x)); });
+            el.classList.add(answered ? "done" : "open");
+          }
+        }
         else { el.className = "do"; el.textContent = it.d; }
         box.appendChild(el);
       });
     });
+    // Highlight the first unanswered linked question, in call order.
+    var first = document.querySelector(".scr .say.open");
+    if (first) first.classList.add("next");
   }
 
   // ---- Consistency engine ----
@@ -669,6 +783,105 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
       b.addEventListener("click", function () { dismissed[it.id] = true; renderConsistency(); });
       row.appendChild(txt); row.appendChild(b); box.appendChild(row);
     });
+  }
+
+  // ---- Case-type templates and ___ blanks ----
+  var lastTemplate = "";
+  $("type").addEventListener("change", function () {
+    var tpl = CONFIG.templates[v("type")] || "", cur = $("what").value.trim();
+    if (tpl && (!cur || cur === lastTemplate)) { $("what").value = tpl; lastTemplate = tpl; render(); }
+  });
+  function blankHits() { return FREE.filter(function (id) { return /_{3,}/.test(v(id)); }).map(function (id) { return NAMES[id]; }); }
+  function nextBlank() {
+    var act = document.activeElement, start = FREE.indexOf(act && act.id), from = start >= 0 ? act.selectionEnd || 0 : 0;
+    var order = start >= 0 ? FREE.slice(start).concat(FREE.slice(0, start)) : FREE;
+    for (var k = 0; k < order.length; k++) {
+      var el = $(order[k]), pos = el.value.indexOf("___", k === 0 ? from : 0);
+      if (pos >= 0) {
+        var end = pos; while (el.value[end] === "_") end++;
+        el.focus(); el.setSelectionRange(pos, end); return;
+      }
+    }
+    toast("No blanks left");
+  }
+
+  // ---- CRM fields sheet: enter once, copy field by field ----
+  var crmPtr = 0, crmDone = {}, sheetSig = null;
+  function crmVal(key) {
+    switch (key) {
+      case "casetype": return typeLabel(v("type"));
+      case "injuries": return injPicked().join(", ");
+      case "disposition": return v("disp") ? v("disp") + (v("disp") === CONFIG.dispCallback && v("cbtime") ? " - " + one(v("cbtime")) : "") : "";
+      case "note": return buildNote();
+      default: var x = v(key); return x === true ? "Checked" : x === false ? "" : one(x);
+    }
+  }
+  function crmRows() {
+    var t = v("type");
+    return CONFIG.crmFields.filter(function (r) {
+      if (r.value === "sub" && t !== "pl") return false;
+      if (r.value === "est" && CONFIG.needsEstablishment.indexOf(t) < 0) return false;
+      if (r.value === "ocomp" && t && t !== "mva") return false;
+      return true;
+    }).map(function (r) { return { label: r.label, key: r.value, val: crmVal(r.value) }; });
+  }
+  function rowBlocked(r) {
+    if (r.key === "note") return idHits().length > 0 || blankHits().length > 0;
+    return /_{3,}/.test(r.val) || ID_RULES.some(function (re) { return re.test(r.val); });
+  }
+  function nextRowIndex(rows) { for (var i = crmPtr; i < rows.length; i++) if (rows[i].val) return i; return -1; }
+  function copyRow(rows, i) {
+    var r = rows[i];
+    if (rowBlocked(r)) { toast(r.label + ": fix the red flags first"); return false; }
+    copyText(r.val, "Copied " + r.label + ". Paste it in the CRM."); crmDone[r.label] = true; crmPtr = i + 1;
+    sheetSig = null; renderSheet(); return true;
+  }
+  function copyNextField() {
+    var rows = crmRows(), i = nextRowIndex(rows);
+    if (i < 0) { crmPtr = 0; toast("All filled CRM fields copied. Starting over from the top."); sheetSig = null; renderSheet(); return; }
+    copyRow(rows, i);
+  }
+  function renderSheet() {
+    var rows = crmRows(), cur = nextRowIndex(rows);
+    var sig = rows.map(function (r) { return r.label + "=" + r.val + (crmDone[r.label] ? "*" : ""); }).join("|") + "#" + cur;
+    if (sig === sheetSig) return; sheetSig = sig;
+    var box = $("sheet"); box.textContent = "";
+    rows.forEach(function (r, i) {
+      var row = document.createElement("div"); row.className = "sr" + (i === cur ? " cur" : "") + (crmDone[r.label] ? " done" : "");
+      var k = document.createElement("div"); k.className = "k"; k.textContent = r.label;
+      var val = document.createElement("div"); val.className = "val";
+      if (r.val) val.textContent = r.key === "note" ? "Full note (see Note tab)" : r.val; else { val.textContent = "Not entered"; val.className += " none"; }
+      var b = document.createElement("button"); b.type = "button"; b.textContent = "Copy";
+      b.disabled = !r.val; b.setAttribute("aria-label", "Copy " + r.label);
+      b.addEventListener("click", function () { copyRow(crmRows(), i); });
+      row.appendChild(k); row.appendChild(val); row.appendChild(b); box.appendChild(row);
+    });
+  }
+
+  // ---- Qualify / decline checklist (rules come from Setup) ----
+  var drSig = null;
+  function drChecked() {
+    return (CONFIG.declineRules || []).filter(function (r, i) { var c = $("dr" + i); return c && c.checked; });
+  }
+  function renderDR() {
+    var rules = CONFIG.declineRules || [];
+    $("dr").hidden = !rules.length;
+    var sig = JSON.stringify(rules); if (sig === drSig) return; drSig = sig;
+    var list = $("dr-list"); list.textContent = "";
+    rules.forEach(function (r, i) {
+      var d = document.createElement("div"); d.className = "chk";
+      var c = document.createElement("input"); c.type = "checkbox"; c.id = "dr" + i; c.className = "dr-chk";
+      c.addEventListener("change", render);
+      var l = document.createElement("label"); l.htmlFor = "dr" + i; l.textContent = r.rule;
+      if (r.action) { var a = document.createElement("span"); a.className = "act"; a.textContent = "If it applies: " + r.action; l.appendChild(a); }
+      d.appendChild(c); d.appendChild(l); list.appendChild(d);
+    });
+  }
+  function readRules(text) {
+    text = String(text || "");
+    var rows = text.indexOf("\t") >= 0 ? parseTable(text) : text.split(/\r?\n/).map(function (l) { return l.split("|").map(function (x) { return x.trim(); }); }).filter(function (r) { return r.some(Boolean); });
+    if (rows.length && /^rule\b/i.test(rows[0][0] || "")) rows.shift();
+    return rows.map(function (r) { return { rule: r[0], action: r.slice(1).filter(Boolean).join(" ") }; }).filter(function (r) { return r.rule; });
   }
 
   // ---- Quick reference ----
@@ -720,8 +933,9 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
   }
   function findDisp(names, re, not) { for (var i = 0; i < names.length; i++) if (re.test(names[i]) && !(not && not.test(names[i]))) return names[i]; return ""; }
   function fillSetup() {
-    $("s-firm").value = CONFIG.firmName; $("s-cb").value = CONFIG.callbackNumber;
+    $("s-firm").value = isPlaceholder(CONFIG.firmName) ? "" : CONFIG.firmName; $("s-cb").value = isPlaceholder(CONFIG.callbackNumber) ? "" : CONFIG.callbackNumber;
     $("s-dup").value = CONFIG.duplicateRule; $("s-dupd").value = CONFIG.duplicateDispositions.join(", ");
+    $("s-dr").value = (CONFIG.declineRules || []).map(function (r) { return r.rule + (r.action ? " | " + r.action : ""); }).join("\n");
   }
   var custom = CUSTOM ? JSON.parse(JSON.stringify(CUSTOM)) : {};
   function applySetup() {
@@ -747,6 +961,11 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
         var miss = CONFIG.duplicateDispositions.filter(function (x) { return names.indexOf(x) < 0; });
         if (miss.length) msg.push("Check the duplicate-rule dispositions; not in your list: " + miss.join(", "));
       } else msg.push("No dispositions found in the pasted text");
+    }
+    var rules = readRules($("s-dr").value);
+    if (rules.length || (CONFIG.declineRules || []).length) {
+      CONFIG.declineRules = custom.declineRules = rules;
+      msg.push(rules.length + " qualify/decline rule" + (rules.length === 1 ? "" : "s") + " loaded");
     }
     if ($("s-qr").value.trim()) {
       var qr = readQR($("s-qr").value);
@@ -847,7 +1066,8 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
       var h = document.createElement("div"); h.className = "flags-title"; h.textContent = "Flags (not copied)"; box.appendChild(h);
       fl.forEach(function (x) { var d = document.createElement("div"); d.className = "flag" + (x.bad ? " bad" : ""); d.textContent = x.t; box.appendChild(d); });
     }
-    $("copy").disabled = hits.length > 0;
+    $("copy").disabled = hits.length > 0 || blankHits().length > 0;
+    renderSheet(); renderDR();
   }
 
   // ---- Polish (local, rule-based) ----
@@ -943,20 +1163,57 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
 
   // ---- Copy, clear, idle ----
   function toast(m) { $("toast").textContent = m; setTimeout(function () { $("toast").textContent = ""; }, 2200); }
-  function copyText(text) {
-    function fallback() { var ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); var ok = false; try { ok = document.execCommand("copy"); } catch (e) {} document.body.removeChild(ta); toast(ok ? "Copied" : "Select the text and copy it manually"); }
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast("Copied"); }, fallback); else fallback();
+  function copyText(text, msg) {
+    function fallback() { var ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); var ok = false; try { ok = document.execCommand("copy"); } catch (e) {} document.body.removeChild(ta); toast(ok ? (msg || "Copied") : "Select the text and copy it manually"); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast(msg || "Copied"); }, fallback); else fallback();
   }
   function clearForm() {
     FIELDS.forEach(function (id) { var e = $(id); if (!e) return; if (e.type === "checkbox") e.checked = false; else e.value = ""; });
     undo = null; $("btn-undo").disabled = true; $("polish-out").textContent = "";
+    crmPtr = 0; crmDone = {}; lastTemplate = "";
+    Array.prototype.forEach.call(document.querySelectorAll(".dr-chk"), function (c) { c.checked = false; });
     dismissed = {};
   }
   var timer = null;
   function resetIdle() { clearTimeout(timer); timer = setTimeout(function () { clearForm(); render(); toast("Cleared after 10 minutes of inactivity"); }, 10 * 60 * 1000); }
 
-  $("copy").addEventListener("click", function () { if (!idHits().length) copyText(buildNote()); });
-  $("btn-new").addEventListener("click", function () { clearForm(); render(); window.scrollTo(0, 0); toast("New lead started"); });
+  function copyNote() {
+    if (idHits().length || blankHits().length) { toast("Fix the red flags before copying"); return; }
+    copyText(buildNote());
+  }
+  function newLead() { clearForm(); render(); window.scrollTo(0, 0); toast("New lead started"); }
+  $("copy").addEventListener("click", copyNote);
+  $("btn-new").addEventListener("click", newLead);
+  $("copy-next").addEventListener("click", copyNextField);
+
+  // ---- Tabs ----
+  function showTab(which) {
+    var note = which === "note";
+    $("p-note").hidden = !note; $("p-crm").hidden = note;
+    $("tab-note").setAttribute("aria-selected", note ? "true" : "false");
+    $("tab-crm").setAttribute("aria-selected", note ? "false" : "true");
+  }
+  $("tab-note").addEventListener("click", function () { showTab("note"); });
+  $("tab-crm").addEventListener("click", function () { showTab("crm"); });
+
+  // ---- Keyboard shortcuts ----
+  var JUMP = { Digit1: "check", Digit2: "sec-contact", Digit3: "sec-incident", Digit4: "sec-injury", Digit5: "sec-legal", Digit6: "sec-disp" };
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey && !e.altKey && e.key === "Enter") { e.preventDefault(); copyNote(); return; }
+    if (!e.altKey || e.ctrlKey || e.metaKey) return;
+    if (JUMP[e.code]) {
+      e.preventDefault();
+      var sec = $(JUMP[e.code]); sec.scrollIntoView({ block: "start" });
+      var nextField = sec.id === "check" ? $("c-rec") : (function () {
+        var n = sec.nextElementSibling;
+        while (n) { var inp = n.matches && n.matches("input,select,textarea") ? n : n.querySelector && n.querySelector("input:not([type=hidden]),select,textarea"); if (inp && inp.offsetParent !== null) return inp; n = n.nextElementSibling; }
+        return null;
+      })();
+      if (nextField) nextField.focus();
+    } else if (e.code === "KeyB") { e.preventDefault(); nextBlank(); }
+    else if (e.code === "KeyC") { e.preventDefault(); copyNextField(); }
+    else if (e.code === "KeyN") { e.preventDefault(); if (window.confirm("Start a new lead? This clears the form.")) newLead(); }
+  });
   $("form").addEventListener("input", render);
   $("form").addEventListener("change", render);
   ["compact", "agent", "showscript"].forEach(function (id) { $(id).addEventListener("input", render); $(id).addEventListener("change", render); });
