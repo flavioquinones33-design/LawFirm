@@ -121,6 +121,7 @@ kbd { font:600 .74rem var(--mono); border:1px solid var(--line); border-bottom-w
 .qr-item { border-top:1px solid var(--line); padding:7px 2px; font-size:.84rem; }
 .qr-item b { display:block; font-size:.8rem; }
 #qr-list { max-height:40vh; overflow:auto; }
+.crmonly { display:grid; gap:6px; border:1px dashed var(--line); border-radius:6px; padding:10px 12px; }
 .box { border:1px dashed var(--line); border-radius:6px; padding:12px 14px; display:grid; gap:8px; }
 .box-out { font-size:.82rem; color:var(--muted); }
 [hidden] { display:none !important; }
@@ -186,7 +187,7 @@ kbd { font:600 .74rem var(--mono); border:1px solid var(--line); border-bottom-w
 
   <div class="layout">
     <form class="panel" id="form" autocomplete="off" onsubmit="return false">
-      <p class="safe">Name, email and phone go straight into the CRM, not this form. The note will not copy while a phone, email, address, ID, date of birth, plate, or claim/policy/record number is detected.</p>
+      <p class="safe">Name, phone and email go only in the CRM-only fields (for copying into the CRM) and never into the note. The note will not copy while a phone, email, address, ID, date of birth, plate, or claim/policy/record number is detected.</p>
       <p class="safe">In free-text fields, describe roles (the other driver, the store manager), not names or numbers.</p>
       <p class="safe"><strong>Do not paste this note, or any part of it, into an AI tool.</strong> The form clears after 10 minutes of inactivity and when the tab closes.</p>
 
@@ -233,6 +234,16 @@ kbd { font:600 .74rem var(--mono); border:1px solid var(--line); border-bottom-w
 
       <h2 class="sec" id="sec-contact" tabindex="-1">Contact</h2>
       <div class="scr" data-phase="contact"></div>
+      <div class="crmonly">
+        <span class="lab">CRM-only fields</span>
+        <span class="hint">Used only for copying into the CRM (CRM fields tab, Alt+C). Never added to the note. Cleared with New lead.</span>
+        <div class="row">
+          <div class="f"><label for="fname">First name</label><input type="text" id="fname" autocomplete="off"></div>
+          <div class="f"><label for="lname">Last name</label><input type="text" id="lname" autocomplete="off"></div>
+          <div class="f"><label for="cphone">Phone</label><input type="text" id="cphone" inputmode="tel" autocomplete="off"></div>
+          <div class="f"><label for="cemail">Email</label><input type="text" id="cemail" inputmode="email" autocomplete="off" spellcheck="false"></div>
+        </div>
+      </div>
       <div class="row">
         <div class="f"><label for="zip">Residence ZIP</label><input type="text" id="zip" inputmode="numeric" placeholder="00000"></div>
         <div class="f"><label for="behalf">Calling on behalf of</label><input type="text" id="behalf" placeholder="Self, family member, other"></div>
@@ -509,7 +520,7 @@ var CONFIG = {
     opening: [H("Opening"), S("[Approved greeting, including the recording disclosure.] My name is {agent}.", "c-rec"),
       S("[Approved question confirming the best phone number in case the call disconnects.]", "c-phone"),
       D("Listen and acknowledge the caller's situation before proceeding.")],
-    contact: [H("Contact information"), S("[ZIP code]", "zip"),
+    contact: [H("Contact information"), S("[Phone, full name and email]", ["cphone", "fname", "cemail"]), S("[ZIP code]", "zip"),
       S("[Own incident or on behalf of someone else?]", ["behalf", "rel"]),
       S("[Approved age-verification question.]", "c-age"), D("If the PC is a minor, follow your parent/guardian procedure."),
       S("[Approved lead-source question.]", "heard")],
@@ -541,6 +552,10 @@ var CONFIG = {
   // CRM fields in the order they appear on your CRM screen. Alt+C copies them one by one.
   // value: a field id, or a special key: casetype, injuries, disposition, note.
   crmFields: [
+    { label: "First name", value: "fname" },
+    { label: "Last name", value: "lname" },
+    { label: "Phone", value: "cphone" },
+    { label: "Email", value: "cemail" },
     { label: "Residence ZIP", value: "zip" },
     { label: "Calling on behalf of", value: "behalf" },
     { label: "How did you hear about us?", value: "heard" },
@@ -561,6 +576,7 @@ var CONFIG = {
     { label: "Call disposition", value: "disposition" },
     { label: "General Information note", value: "note" }
   ],
+  crmOnlyFields: ["fname", "lname", "cphone", "cemail"],   // never in the note, never blocked by the identifier check
   declineRules: []                          // [{ rule, action }] loaded in Setup from your own list
 };
 /* ===================== END OF SETTINGS ===================== */
@@ -705,6 +721,8 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
     var promise = /\b(strong case|good case|definitely|guarantee[ds]?|for sure|(?:you'?ll|will) (?:get|receive|win)|settle(?:ment)? (?:of|for) \$|is (?:legally )?(?:responsible|liable)|(?:attorney|lawyer|someone) will (?:call|contact)[^.]*\b(?:(?:in|within)\s+(?:\d+|an?|one|two|few|the next)|today|tonight|tomorrow))\b/i;
     if (promise.test(v("outcome"))) f.push({ bad: true, t: "Call outcome contains a possible promise or legal conclusion. Write only confirmed next steps." });
     if (!v("c-legal") || !v("c-promise")) f.push({ t: "Before ending the call, confirm: no legal advice, no promises." });
+    if (v("cemail") && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v("cemail"))) f.push({ t: "Email looks incomplete. Read it back to the caller." });
+    if (v("cphone") && v("cphone").replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "").length !== 10) f.push({ t: "Phone should have 10 digits. Read it back to the caller." });
     if (!disp) f.push({ bad: true, t: "Call disposition not selected. Every call needs one." });
     if (disp === CONFIG.dispTransfer && !v("xferok")) f.push({ bad: true, t: "Use \"" + CONFIG.dispTransfer + "\" only if the partner accepted the live connection. Otherwise use \"" + CONFIG.dispAttempted + "\"." });
     if (disp === CONFIG.dispCallback && !v("cbtime")) f.push({ bad: true, t: "Add the agreed callback date and time." });
@@ -826,6 +844,7 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
     }).map(function (r) { return { label: r.label, key: r.value, val: crmVal(r.value) }; });
   }
   function rowBlocked(r) {
+    if (CONFIG.crmOnlyFields.indexOf(r.key) >= 0) return false;
     if (r.key === "note") return idHits().length > 0 || blankHits().length > 0;
     return /_{3,}/.test(r.val) || ID_RULES.some(function (re) { return re.test(r.val); });
   }
