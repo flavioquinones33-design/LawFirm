@@ -8,6 +8,40 @@ In free-text fields, describe roles (the other driver, the store manager), not n
 
 Do not paste this note into AI tools or personal apps. The form clears after 10 minutes of inactivity and when the tab closes. Nothing is saved.
 
+## Header
+
+**Your first name** — Used in the call script and voicemail.
+
+[ ] Show call script
+
+**Shortcuts** — Alt+1 to Alt+6 jump to Checklist, Contact, Incident, Injury, Legal and Disposition. Alt+B selects the next ___ blank. Alt+C copies the next CRM field. Ctrl+Enter copies the note. Alt+N starts a new lead (asks first).
+
+**Setup** — Loads your own lists on this computer. See Setup below.
+
+**New lead** — Clears the form.
+
+## Autofail prevention checklist
+
+Each item is a critical requirement. Missing one can fail the call in QA review. The badge counts how many of the 6 are done.
+
+[ ] Gave the recording disclosure at the start of the call
+
+[ ] Verified out loud that the number on file is the best number, including if the call disconnects
+
+**Age verification** — Not verified yet; PC verified 18 or older; PC is under 18, parent/guardian procedure followed; PC is under 18, guardian not involved yet. Ask every caller. Never assume age from voice or circumstances.
+
+[ ] Asked how the PC heard about us, without suggesting an answer
+
+[ ] Identified my role correctly and gave no legal advice
+
+[ ] Made no promises: acceptance, settlement amount, outcome, or an unconfirmed callback time
+
+**Say this, not that** — A table of phrases to avoid and what to say instead (recording disclosure, phone verification, age, lead source, fault, settlement, callback times).
+
+## Call script
+
+Shown in each section when Show call script is on. "Say" lines are read aloud; italic lines are agent instructions. The next unanswered question is highlighted, and answered ones are crossed out. Replace each [bracketed topic] with your approved wording in SETTINGS (`script`). The Recap fills in the date, place, what happened and injuries from the form.
+
 ## Contact
 
 Residence ZIP
@@ -99,6 +133,40 @@ The note lists fault and insurance lines for every case type, matching the field
 
 Call outcome and next steps
 
+**Recap and transfer** — Recap script built from the form, then your approved transfer and closing lines.
+
+## Voicemail
+
+English or Español. Set the firm name and callback number right in the box. The script says only who is calling and the callback number. Never mention the case, injuries or why they contacted us. **Voicemail left: set disposition** sets the disposition to Left Voicemail.
+
+## Call disposition
+
+**Call disposition** — Required. Pick what actually happened, not what you intended. The hint shows the definition loaded in Setup.
+
+**Transfer check** — For Transferred only: [ ] The partner accepted the live connection. Otherwise use Attempted Transfer - Info Sent.
+
+**Agreed callback date and time** — Required for Schedule Callback.
+
+[ ] Duplicate lead (this PC has another open lead)
+
+With a duplicate lead and No Answer, the rule shows: internally decline the newest lead and keep the oldest open.
+
+Don't change the lead status by hand. Record the disposition and accurate notes.
+
+## Side panel
+
+**Autofail risks** — Lists any checklist item not done, or a possible promise or legal conclusion in Call outcome.
+
+**Consistency checks** — Compare the PC's story with the answers: work words without Workers' Comp, a lawyer mentioned, passengers, a minor, a year that doesn't match the date, a relative date, a settlement or release, fault, police, uninsured, hit-and-run, a death, surgery, a dog, a slip or fall, a vehicle collision, someone else named in "Calling on behalf of", a do-not-call request, and a callback. Click **Confirmed** to dismiss one for this lead. They never change an answer.
+
+**Qualify / decline check** — Your decline rules from Setup as a checklist. A checked rule shows what to do and a red flag.
+
+**Note / CRM fields tabs** — Note shows the General Information note. CRM fields lists each value in Salesforce screen order with a Copy button; Alt+C copies the next one.
+
+**Flags (not copied)** — Red flags must be fixed (identifiers, ___ blanks, missing disclosure, age, disposition, transfer or callback details, Do Not Call with Add to Dialer). Yellow flags are reminders (missing date or place, date format, missing critical facts, writing suggestions).
+
+**Quick reference** — Searchable cheat sheet loaded in Setup.
+
 ## Ask next
 
 Panel beside the note. Shows how many critical facts are answered (for example, 12 of 14 critical) and lists up to 5 unanswered questions: critical first (red dot), then helpful, in call order. A tag shows when a question comes from the second case type or a dual-case trigger. Each question has two buttons:
@@ -159,5 +227,23 @@ MISSING
 ```
 
 **Copy note** stays disabled while an identifier or a ___ blank is in the note.
+
+## Setup
+
+Runs only on this computer. Use it for procedures and lists, never for client data.
+
+**Firm name** and **Callback number for voicemails**
+
+**Dispositions** — Paste from Excel: Disposition and Definition, with an optional Group column first.
+
+**Quick reference / cheat sheet** — Paste from Excel: Topic and Guidance.
+
+**Duplicate-lead rule** and the dispositions it applies to.
+
+**Qualify / decline rules** — Rule and What to do, from Excel or one per line.
+
+**Apply** uses them now. **Download customized copy** saves a copy of this page with your lists built in; use that copy from then on.
+
+## CRM fields
 
 Click Copy on a row to copy that value. First name, last name, email and phone are typed into Salesforce directly.
