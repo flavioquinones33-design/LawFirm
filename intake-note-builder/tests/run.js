@@ -3,7 +3,7 @@
 const path = require("path");
 const { chromium } = require("playwright");
 
-const PAGE = "file://" + path.resolve(__dirname, "..", "index.html");
+const PAGE = "file://" + path.resolve(process.argv[2] || path.join(__dirname, "..", "index.html"));
 let failed = 0, passed = 0;
 function check(name, ok, detail) {
   if (ok) passed++; else { failed++; console.log("FAIL " + name + (detail ? "\n     " + detail : "")); }
