@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intake Note Builder</title>
+<style>
+:root{--bg:#f1f4f5;--surface:#fff;--fg:#17232d;--muted:#5a6a76;--line:#d3dce1;--accent:#0f6b78;--note-bg:#f8fafb;
+--font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f171c;--surface:#172229;--fg:#e4ecf0;--muted:#93a5b0;--line:#2a3942;--accent:#4fc3d0;--note-bg:#111b21;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f171c;--surface:#172229;--fg:#e4ecf0;--muted:#93a5b0;--line:#2a3942;--accent:#4fc3d0;--note-bg:#111b21;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 var(--font);padding:24px 16px 48px}
+main{max-width:860px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:24px 28px}
+h1{margin:0 0 4px;font-size:1.6rem}
+h2{margin:28px 0 10px;font-size:.78rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);border-bottom:1px solid var(--line);padding-bottom:6px}
+p{margin:8px 0}
+.field{display:grid;gap:2px;padding:7px 0;border-bottom:1px dashed var(--line)}
+.lab{font-weight:600}
+.hint{font-size:.86rem;color:var(--muted)}
+.checks{display:grid;gap:6px 18px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));padding:8px 0}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:.92rem}
+.chk input{margin-top:4px;accent-color:var(--accent)}
+ul{margin:8px 0;padding-left:20px}li{margin:4px 0}
+.tbl{overflow-x:auto;margin:10px 0}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{text-align:left;vertical-align:top;padding:7px 8px;border-top:1px solid var(--line)}
+th{font-weight:600;color:var(--muted);border-top:0}
+code{font:.85em var(--mono);background:var(--note-bg);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+pre.note{font:.8rem/1.55 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;background:var(--note-bg);border:1px solid var(--line);border-radius:6px;padding:14px;margin:10px 0}
+@media (max-width:600px){main{padding:18px 16px}}
+@media print{body{background:#fff;padding:0}main{border:0}}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Intake Note Builder</h1></header>
+<p>Follows the Salesforce intake screen. The note goes in General Information.</p>
+<p>First name, last name, email and phone go straight into Salesforce. They are not part of this form, and the note will not copy while a phone, email, address, ID number, labeled date of birth, plate, or claim/policy/record number is detected.</p>
+<p>In free-text fields, describe roles (the other driver, the store manager), not names or numbers.</p>
+<p>Do not paste this note into AI tools or personal apps. The form clears after 10 minutes of inactivity and when the tab closes. Nothing is saved.</p>
+<h2 id="contact">Contact</h2>
+<div class="field"><span class="lab">Residence ZIP</span></div>
+<div class="field"><span class="lab">Calling on behalf of</span></div>
+<div class="field"><span class="lab">Caller's relationship to PC</span><span class="hint">Self, spouse, parent, child, other family, friend, other.</span></div>
+<div class="field"><span class="lab">How did you hear about us?</span></div>
+<div class="checks"><label class="chk"><input type="checkbox" disabled> <span>Add to Dialer</span></label></div>
+<h2 id="incident">Incident</h2>
+<div class="field"><span class="lab">Case type</span><span class="hint">Choose from what the PC described, not the campaign.</span></div>
+<div class="field"><span class="lab">PL subtype</span><span class="hint">Use Other only when the facts point to it.</span></div>
+<div class="checks"><label class="chk"><input type="checkbox" disabled> <span>Facts also fit a second case type</span></label></div>
+<div class="field"><span class="lab">Second type</span></div>
+<p>Dual-case check: the tool reads What happened, Specific details, Injuries and Location details. When the story suggests a second case type that isn't selected, a consistency check says so and that type's questions join <strong>Ask next</strong>. The message stops once the second type is selected; the questions stay. It never sets the type itself. When a second type is selected, all of that type's facts are added to Ask next too.</p>
+<div class="tbl"><table><thead><tr><th>Story mentions</th><th>On case type</th><th>Suggests</th><th>Adds questions</th></tr></thead><tbody><tr><td>At work, was working, company vehicle, delivering, on the clock, on shift, rideshare or delivery app</td><td>MVA</td><td>Workers' Comp</td><td>Was the PC working when this happened? Who were they working for? Was it reported to the employer?</td></tr><tr><td>The same work words</td><td>Premises Liability</td><td>Workers' Comp</td><td>The same Workers' Comp questions, plus: whose property was it, the employer's or someone else's?</td></tr><tr><td>Parking lot, gas station, driveway, garage, drive-thru</td><td>MVA</td><td>Premises Liability</td><td>Who owns or manages the location? Did a condition of the property play a part (lighting, potholes, signs)?</td></tr><tr><td>Yard, porch, apartment, complex, landlord, neighbor's</td><td>Dog Bite</td><td>Premises Liability</td><td>Who owns the property? Is the dog owner a tenant? Did the landlord know about the dog?</td></tr></tbody></table></div>
+<div class="field"><span class="lab">Incident date</span><span class="hint">Salesforce format is MM/DD/YYYY. Add the time after it if you have one.</span></div>
+<div class="field"><span class="lab">Incident city</span></div>
+<div class="field"><span class="lab">Incident state</span></div>
+<div class="field"><span class="lab">Name of establishment / property</span><span class="hint">Required for Premises Liability and Workers' Comp. Name only, no street address.</span></div>
+<div class="field"><span class="lab">Location details</span><span class="hint">Cross streets or a landmark only. No house number or street address.</span></div>
+<div class="field"><span class="lab">What happened (as PC reports)</span></div>
+<div class="field"><span class="lab">Specific details</span></div>
+<h2 id="injury">Injury</h2>
+<div class="field"><span class="lab">Injury summary</span><span class="hint">select all that apply.</span></div>
+<div class="checks"><label class="chk"><input type="checkbox" disabled> <span>Amputation</span></label><label class="chk"><input type="checkbox" disabled> <span>Brain Bleed or Coma</span></label><label class="chk"><input type="checkbox" disabled> <span>Death</span></label><label class="chk"><input type="checkbox" disabled> <span>Multiple Broken Bones</span></label><label class="chk"><input type="checkbox" disabled> <span>Multiple Surgeries</span></label><label class="chk"><input type="checkbox" disabled> <span>Neck / Back Surgery</span></label><label class="chk"><input type="checkbox" disabled> <span>Traumatic Brain Injury</span></label></div>
+<p>Check only what the PC stated.</p>
+<div class="field"><span class="lab">Injuries in the PC's words</span></div>
+<div class="field"><span class="lab">Ongoing treatment</span></div>
+<h2 id="legal">Legal</h2>
+<div class="field"><span class="lab">Were you determined at fault?</span></div>
+<div class="field"><span class="lab">Already represented by an attorney?</span></div>
+<div class="field"><span class="lab">Claim already settled or resolved?</span></div>
+<div class="field"><span class="lab">Do you or At-Fault have insurance?</span><span class="hint">The Salesforce question is one field. Say whose below.</span></div>
+<div class="field"><span class="lab">PC has insurance</span></div>
+<div class="field"><span class="lab">At-fault party insured</span></div>
+<div class="field"><span class="lab">At-fault party driving for a company?</span></div>
+<div class="field"><span class="lab">Police report / other documentation</span><span class="hint">Yes, No or Unknown, and the type (police report, photos, medical records). No report or claim numbers.</span></div>
+<p>The note lists fault and insurance lines for every case type, matching the field sheet. For Premises Liability and Workers' Comp, the at-fault party is the property owner or employer.</p>
+<div class="field"><span class="lab">Call outcome and next steps</span></div>
+<h2 id="ask-next">Ask next</h2>
+<p>Panel beside the note. Shows how many critical facts are answered (for example, 12 of 14 critical) and lists up to 5 unanswered questions: critical first (red dot), then helpful, in call order. A tag shows when a question comes from the second case type or a dual-case trigger. Each question has two buttons:</p>
+<ul><li><strong>PC didn't know</strong> — counts as answered. In the compact note it moves that line to "Asked, PC didn't know".</li><li><strong>Not relevant</strong> — hides the question for this lead.</li></ul>
+<p>A fact counts as answered when its field is filled (no ___ blanks), or, for facts without a field, when the story contains matching words. Missing critical facts show as one warning flag and are listed under "Not asked" in the compact note. They never block copying. Questions are neutral drafts; replace them with your approved wording in SETTINGS (<code>facts</code> and <code>triggers</code>).</p>
+<div class="tbl"><table><thead><tr><th>Case type</th><th>Critical</th><th>Helpful</th></tr></thead><tbody><tr><td>Every type</td><td>Incident date, city and state, injuries, treatment, already represented, claim settled</td><td>—</td></tr><tr><td>MVA</td><td>PC's role (driver, passenger, pedestrian, cyclist), how the crash happened, at-fault insurance, police report, at-fault driver working for a company</td><td>PC's insurance, others in the vehicle</td></tr><tr><td>Premises Liability</td><td>What caused it, type and name of property, reported to staff, incident report</td><td>Photos or witnesses</td></tr><tr><td>Dog Bite</td><td>Dog's owner, where it happened</td><td>Animal control or police report, prior bites</td></tr><tr><td>Workers' Comp</td><td>Employer name, working at the time, reported to employer</td><td>When it was reported</td></tr></tbody></table></div>
+<h2 id="review-writing">Review writing</h2>
+<p>Checks the free-text fields (What happened, Specific details, Location details, Injuries, Ongoing treatment, the detail boxes and Call outcome) on this computer only. Nothing is sent anywhere.</p>
+<ul><li><strong>Spelling</strong> — words not in the built-in dictionary (about 39,000 English words from SCOWL, plus an editable allow list of medical, auto and legal terms) get up to 3 suggestions, nearest and most common first. Words with numbers, all-caps words (PC, MRI) and capitalized words mid-sentence (likely names) are skipped.</li><li><strong>Grammar</strong> — each problem comes with a fix, for example "should of" → "should have", "a accident" → "an accident", "the PC were" → "the PC was", "PC was took" → "PC was taken", "their was" → "there was", "more then" → "more than", "slammed on the breaks" → "brakes", "rear ended" → "rear-ended". Long sentences (over 40 words) get a note only.</li><li><strong>Accept</strong>, <strong>Reject</strong>, or <strong>Ignore word</strong> for each item. <strong>Accept all safe</strong> applies every grammar fix and spelling fixes with one clear choice. <strong>Undo</strong> reverses one step at a time.</li><li>A fix is never applied if it would change a number or add a new fact; that button is greyed out and the item shows "Manual fix needed".</li><li><strong>Copy note</strong> reminds you once if suggestions haven't been reviewed; copy again to copy anyway.</li></ul>
+<p><strong>Polish (format only)</strong> fixes spacing, capitals and punctuation. It no longer changes spelling.</p>
+<div class="checks"><label class="chk"><input type="checkbox" disabled> <span>Compact: hide "Not provided" lines and list them under Missing</span></label></div>
+<p>Missing is split in two: Not asked (raise on callback) and Asked, PC didn't know (request documents).</p>
+<p>Example (made-up data, Compact on, MVA with possible Workers' Comp):</p>
+<pre class="note">CALL CHECKS
+- Recording disclosed: Not confirmed
+- Phone verified verbally: Not confirmed
+- Age verification: Not verified
+WHAT HAPPENED
+- Case type: Motor Vehicle Accident (MVA)
+- Possible dual case type: Motor Vehicle Accident (MVA) and Workers&#x27; Comp
+- Incident date: 03/14/2026
+- Incident city and state: Springfield, Illinois
+- Establishment / employer: Example Delivery Co.
+- What happened (as PC reports): PC reports being the driver of a company van while making a delivery when another car ran a red light and hit the driver side.
+INJURY AND TREATMENT
+- Injuries (as reported): Neck and lower back pain.
+- Ongoing treatment: Went to the ER the same day; X-rays taken.
+LEGAL
+- Represented by an attorney: No
+- Claim settled or resolved: No
+- Police report / documentation: Yes - Police report
+MISSING
+- Not asked (raise on callback): Caller relationship, Lead source, Location details, Specific details, PC at fault, PC insurance, Company driver, Call outcome, Reported to employer
+- Asked, PC didn&#x27;t know (request documents): At-fault insurance</pre>
+<p><strong>Copy note</strong> stays disabled while an identifier or a ___ blank is in the note.</p>
+<p>Click Copy on a row to copy that value. First name, last name, email and phone are typed into Salesforce directly.</p>
+</main>
+</body>
+</html>
