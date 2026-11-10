@@ -121,7 +121,6 @@ kbd { font:600 .74rem var(--mono); border:1px solid var(--line); border-bottom-w
 .qr-item { border-top:1px solid var(--line); padding:7px 2px; font-size:.84rem; }
 .qr-item b { display:block; font-size:.8rem; }
 #qr-list { max-height:40vh; overflow:auto; }
-.crmonly { display:grid; gap:6px; border:1px dashed var(--line); border-radius:6px; padding:10px 12px; }
 .box { border:1px dashed var(--line); border-radius:6px; padding:12px 14px; display:grid; gap:8px; }
 .box-out { font-size:.82rem; color:var(--muted); }
 [hidden] { display:none !important; }
@@ -132,7 +131,7 @@ kbd { font:600 .74rem var(--mono); border:1px solid var(--line); border-bottom-w
   <header>
     <div>
       <h1>Intake Note Builder</h1>
-      <p class="sub">Generic template. Builds the case note for your CRM. Runs offline; nothing is saved.</p>
+      <p class="sub">Follows the Salesforce intake screen. The note goes in General Information. Runs offline; nothing is saved.</p>
     </div>
     <div class="bar">
       <label for="agent" class="hint">Your first name</label>
@@ -187,9 +186,9 @@ kbd { font:600 .74rem var(--mono); border:1px solid var(--line); border-bottom-w
 
   <div class="layout">
     <form class="panel" id="form" autocomplete="off" onsubmit="return false">
-      <p class="safe">Name, phone and email go only in the CRM-only fields (for copying into the CRM) and never into the note. The note will not copy while a phone, email, address, ID, date of birth, plate, or claim/policy/record number is detected.</p>
+      <p class="safe">First name, last name, email and phone go straight into Salesforce. They are not part of this form, and the note will not copy while a phone, email, address, ID number, labeled date of birth, plate, or claim/policy/record number is detected.</p>
       <p class="safe">In free-text fields, describe roles (the other driver, the store manager), not names or numbers.</p>
-      <p class="safe"><strong>Do not paste this note, or any part of it, into an AI tool.</strong> The form clears after 10 minutes of inactivity and when the tab closes.</p>
+      <p class="safe"><strong>Do not paste this note into AI tools or personal apps.</strong> The form clears after 10 minutes of inactivity and when the tab closes. Nothing is saved.</p>
 
       <!-- Compliance checklist -->
       <div class="card" id="check" role="group" aria-labelledby="check-t">
@@ -234,16 +233,6 @@ kbd { font:600 .74rem var(--mono); border:1px solid var(--line); border-bottom-w
 
       <h2 class="sec" id="sec-contact" tabindex="-1">Contact</h2>
       <div class="scr" data-phase="contact"></div>
-      <div class="crmonly">
-        <span class="lab">CRM-only fields</span>
-        <span class="hint">Used only for copying into the CRM (CRM fields tab, Alt+C). Never added to the note. Cleared with New lead.</span>
-        <div class="row">
-          <div class="f"><label for="fname">First name</label><input type="text" id="fname" autocomplete="off"></div>
-          <div class="f"><label for="lname">Last name</label><input type="text" id="lname" autocomplete="off"></div>
-          <div class="f"><label for="cphone">Phone</label><input type="text" id="cphone" inputmode="tel" autocomplete="off"></div>
-          <div class="f"><label for="cemail">Email</label><input type="text" id="cemail" inputmode="email" autocomplete="off" spellcheck="false"></div>
-        </div>
-      </div>
       <div class="row">
         <div class="f"><label for="zip">Residence ZIP</label><input type="text" id="zip" inputmode="numeric" placeholder="00000"></div>
         <div class="f"><label for="behalf">Calling on behalf of</label><input type="text" id="behalf" placeholder="Self, family member, other"></div>
@@ -253,7 +242,7 @@ kbd { font:600 .74rem var(--mono); border:1px solid var(--line); border-bottom-w
         </div>
         <div class="f"><label for="heard">How did you hear about us?</label><input type="text" id="heard" placeholder="As the PC said it"><span class="hint">Ask openly. Don't guess.</span></div>
       </div>
-      <div class="chk"><input type="checkbox" id="dialer"><label for="dialer">Add to dialer</label></div>
+      <div class="chk"><input type="checkbox" id="dialer"><label for="dialer">Add to Dialer</label></div>
 
       <h2 class="sec" id="sec-incident" tabindex="-1">Incident</h2>
       <div class="scr" data-phase="incident"></div>
@@ -264,7 +253,7 @@ kbd { font:600 .74rem var(--mono); border:1px solid var(--line); border-bottom-w
           <span class="hint">Choose from what the PC described, not the campaign.</span>
         </div>
         <div class="f" id="wrap-sub" hidden>
-          <label for="sub">Premises subtype</label>
+          <label for="sub">PL subtype</label>
           <select id="sub"></select>
           <span class="hint">Use Other only when the facts point to it.</span>
         </div>
@@ -274,47 +263,49 @@ kbd { font:600 .74rem var(--mono); border:1px solid var(--line); border-bottom-w
         <div id="wrap-dual" hidden><label for="type2">Second type</label><select id="type2"></select></div>
       </div>
       <div class="row">
-        <div class="f"><label for="date">Incident date</label><input type="text" id="date" placeholder="MM/DD/YYYY"><span class="hint">Add the time after it if you have one.</span></div>
+        <div class="f"><label for="date">Incident date</label><input type="text" id="date" placeholder="MM/DD/YYYY"><span class="hint">Salesforce format is MM/DD/YYYY. Add the time after it if you have one.</span></div>
         <div class="f"><label for="city">Incident city</label><input type="text" id="city"></div>
         <div class="f"><label for="state">Incident state</label><select id="state"></select></div>
       </div>
       <div class="f" id="wrap-est" hidden>
-        <label for="est" class="req">Name of establishment / property / employer</label>
+        <label for="est" class="req">Name of establishment / property</label>
         <input type="text" id="est" placeholder="Business name only">
-        <span class="hint">Name only, no street address.</span>
+        <span class="hint">Required for Premises Liability and Workers' Comp. Name only, no street address.</span>
       </div>
-      <div class="f"><label for="loc">Location details</label><input type="text" id="loc" placeholder="Freeway, store, intersection"><span class="hint">Cross streets or a landmark only. No house number.</span></div>
+      <div class="f"><label for="loc">Location details</label><input type="text" id="loc" placeholder="Freeway, store, intersection"><span class="hint">Cross streets or a landmark only. No house number or street address.</span></div>
       <div class="f"><label for="what">What happened (as PC reports)</label><textarea id="what" placeholder="PC reports..."></textarea></div>
       <div class="f"><label for="spec" id="spec-lab">Specific details</label><textarea id="spec"></textarea><span class="hint" id="spec-hint"></span></div>
 
       <h2 class="sec" id="sec-injury" tabindex="-1">Injury</h2>
       <div class="scr" data-phase="injury"></div>
       <div class="f">
-        <span class="lab">Serious injuries, select all that apply</span>
+        <span class="lab">Injury summary, select all that apply</span>
         <div class="checks" id="injchecks"></div>
         <span class="hint">Check only what the PC stated.</span>
       </div>
       <div class="f"><label for="inj">Injuries in the PC's words</label><textarea id="inj"></textarea></div>
-      <div class="f"><label for="tx">Treatment</label><textarea id="tx" placeholder="ER, urgent care, hospital, imaging, other"></textarea></div>
+      <div class="f"><label for="tx">Ongoing treatment</label><textarea id="tx" placeholder="ER, urgent care, hospital, imaging, other"></textarea></div>
 
       <h2 class="sec" id="sec-legal" tabindex="-1">Legal</h2>
       <div class="scr" data-phase="legal"></div>
       <div class="row">
-        <div class="f"><label for="fault">Determined at fault?</label><select id="fault" class="yn"></select><input type="text" id="fault-d" placeholder="Detail, as the PC reported it"></div>
+        <div class="f"><label for="fault">Were you determined at fault?</label><select id="fault" class="yn"></select><input type="text" id="fault-d" placeholder="Detail, as the PC reported it"></div>
         <div class="f"><label for="atty">Already represented by an attorney?</label><select id="atty" class="yn"></select></div>
         <div class="f"><label for="settled">Claim already settled or resolved?</label><select id="settled" class="yn"></select></div>
       </div>
+      <div class="f"><span class="lab">Do you or At-Fault have insurance?</span><span class="hint">The Salesforce question is one field. Say whose below.</span></div>
       <div class="row">
         <div class="f"><label for="ins">PC has insurance</label><select id="ins" class="ynd"></select><input type="text" id="ins-d" placeholder="Type, e.g. auto, health"></div>
         <div class="f"><label for="oins" id="oins-lab">At-fault party insured</label><select id="oins" class="ynd"></select><input type="text" id="oins-d" placeholder="Only if the PC gave it"></div>
-        <div class="f" id="wrap-ocomp"><label for="ocomp">At-fault driver working for a company?</label><select id="ocomp" class="ynd"></select><input type="text" id="ocomp-d" placeholder="Company or vehicle type, if given"></div>
+        <div class="f" id="wrap-ocomp"><label for="ocomp">At-fault party driving for a company?</label><select id="ocomp" class="ynd"></select><input type="text" id="ocomp-d" placeholder="Company or vehicle type, if given"></div>
       </div>
       <div class="f">
         <label for="docs">Police report / other documentation</label>
         <select id="docs" class="ynd"></select>
         <input type="text" id="docs-d" placeholder="Type only: police report, photos, medical records">
-        <span class="hint">No report or claim numbers.</span>
+        <span class="hint">Yes, No or Unknown, and the type (police report, photos, medical records). No report or claim numbers.</span>
       </div>
+      <span class="hint">The note lists fault and insurance lines for every case type, matching the field sheet. For Premises Liability and Workers' Comp, the at-fault party is the property owner or employer.</span>
       <div class="f"><label for="outcome">Call outcome and next steps</label><textarea id="outcome" placeholder="Write only what you confirmed or did."></textarea></div>
 
       <h2 class="sec">Recap and transfer</h2>
@@ -379,11 +370,12 @@ kbd { font:600 .74rem var(--mono); border:1px solid var(--line); border-bottom-w
         <button type="button" class="tab" role="tab" id="tab-crm" aria-selected="false" aria-controls="p-crm">CRM fields</button>
       </div>
       <div id="p-note" role="tabpanel" aria-labelledby="tab-note" style="display:grid;gap:12px">
-        <div class="chk"><input type="checkbox" id="compact"><label for="compact">Compact: hide empty lines and list them under Not asked / PC did not know</label></div>
+        <div class="chk"><input type="checkbox" id="compact"><label for="compact">Compact: hide "Not provided" lines and list them under Missing</label></div>
+        <span class="hint">Missing is split in two: Not asked (raise on callback) and Asked, PC didn't know (request documents).</span>
         <pre id="note"></pre>
       </div>
       <div id="p-crm" role="tabpanel" aria-labelledby="tab-crm" hidden style="display:grid;gap:8px">
-        <span class="hint">Enter each fact once here, then copy it into the CRM. Alt+C copies the next field and moves on; switch to the CRM, paste, come back, repeat.</span>
+        <span class="hint">Click Copy on a row to copy that value. Alt+C copies the next field and moves on. First name, last name, email and phone are typed into Salesforce directly.</span>
         <div class="sheet" id="sheet"></div>
       </div>
       <div class="bar">
@@ -431,7 +423,7 @@ var CONFIG = {
   ],
   premisesSubtypes: ["Slip and Fall", "Negligent Security", "Other"],
   needsEstablishment: ["pl", "wc"],          // case types that require the establishment/employer name
-  seriousInjuries: ["Amputation", "Brain injury", "Death", "Multiple fractures", "Surgery", "Spinal injury"],
+  seriousInjuries: ["Amputation", "Brain Bleed or Coma", "Death", "Multiple Broken Bones", "Multiple Surgeries", "Neck / Back Surgery", "Traumatic Brain Injury"],
   dispositions: [
     { group: "Not reached", items: ["No Answer", "Left Voicemail", "Disconnected", "Caller Hung Up"] },
     { group: "Follow-up", items: ["Schedule Callback", "Does Not Qualify", "General Inquiry", "Do Not Call"] },
@@ -493,8 +485,8 @@ var CONFIG = {
       when: function (f) { return f.picks.indexOf("Death") < 0 || f("rel") === "Self"; },
       msg: "Story mentions a death. Confirm the serious-injury selection and the caller's relationship." },
     { id: "surgery", re: /\b(surgery|surgeries|operated on|operation)\b/i, in: ["inj", "tx", "what"],
-      when: function (f) { return f.picks.indexOf("Surgery") < 0; },
-      msg: "Surgery mentioned. Confirm whether it happened or was only recommended, and check Serious injuries only if the PC stated it." },
+      when: function (f) { return !f.picks.some(function (p) { return /surger/i.test(p); }); },
+      msg: "Surgery mentioned. Confirm whether it happened or was only recommended, and check the Injury summary only if the PC stated it." },
     { id: "dog", re: /\b(dog|pit ?bull|bitten|bit me)\b/i,
       when: function (f) { return f("type") !== "dog" && !/dog/i.test(f("type2")); },
       msg: "Story mentions a dog or a bite. Check the case type." },
@@ -520,7 +512,7 @@ var CONFIG = {
     opening: [H("Opening"), S("[Approved greeting, including the recording disclosure.] My name is {agent}.", "c-rec"),
       S("[Approved question confirming the best phone number in case the call disconnects.]", "c-phone"),
       D("Listen and acknowledge the caller's situation before proceeding.")],
-    contact: [H("Contact information"), S("[Phone, full name and email]", ["cphone", "fname", "cemail"]), S("[ZIP code]", "zip"),
+    contact: [H("Contact information"), D("Phone, full name and email: type them into Salesforce directly, not into this form."), S("[ZIP code]", "zip"),
       S("[Own incident or on behalf of someone else?]", ["behalf", "rel"]),
       S("[Approved age-verification question.]", "c-age"), D("If the PC is a minor, follow your parent/guardian procedure."),
       S("[Approved lead-source question.]", "heard")],
@@ -552,31 +544,27 @@ var CONFIG = {
   // CRM fields in the order they appear on your CRM screen. Alt+C copies them one by one.
   // value: a field id, or a special key: casetype, injuries, disposition, note.
   crmFields: [
-    { label: "First name", value: "fname" },
-    { label: "Last name", value: "lname" },
-    { label: "Phone", value: "cphone" },
-    { label: "Email", value: "cemail" },
     { label: "Residence ZIP", value: "zip" },
     { label: "Calling on behalf of", value: "behalf" },
     { label: "How did you hear about us?", value: "heard" },
     { label: "Case type", value: "casetype" },
-    { label: "Premises subtype", value: "sub" },
+    { label: "PL subtype", value: "sub" },
     { label: "Incident date", value: "date" },
     { label: "Incident city", value: "city" },
     { label: "Incident state", value: "state" },
     { label: "Establishment / employer", value: "est" },
-    { label: "Serious injuries", value: "injuries" },
-    { label: "Treatment", value: "tx" },
-    { label: "Determined at fault?", value: "fault" },
+    { label: "Injury summary", value: "injuries" },
+    { label: "Ongoing treatment", value: "tx" },
+    { label: "Were you determined at fault?", value: "fault" },
     { label: "Represented by an attorney?", value: "atty" },
     { label: "Claim settled or resolved?", value: "settled" },
     { label: "PC has insurance", value: "ins" },
     { label: "At-fault party insured", value: "oins" },
-    { label: "At-fault driver working for a company?", value: "ocomp" },
+    { label: "At-fault party driving for a company?", value: "ocomp" },
     { label: "Call disposition", value: "disposition" },
     { label: "General Information note", value: "note" }
   ],
-  crmOnlyFields: ["fname", "lname", "cphone", "cemail"],   // never in the note, never blocked by the identifier check
+  crmOnlyFields: [],                         // field ids never in the note and never blocked by the identifier check
   declineRules: []                          // [{ rule, action }] loaded in Setup from your own list
 };
 /* ===================== END OF SETTINGS ===================== */
@@ -625,7 +613,7 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
 
   var FIELDS = Array.prototype.map.call($("form").querySelectorAll("input, select, textarea"), function (e) { return e.id; }).filter(Boolean).concat(["compact"]);
   var FREE = ["behalf","heard","date","city","est","loc","what","spec","inj","tx","fault-d","ins-d","oins-d","ocomp-d","docs-d","outcome","cbtime"];
-  var NAMES = { behalf:"Calling on behalf of", heard:"How did you hear", date:"Incident date", city:"Incident city", est:"Establishment name", loc:"Location details", what:"What happened", spec:"Specific details", inj:"Injuries", tx:"Treatment", "fault-d":"Fault detail", "ins-d":"PC insurance detail", "oins-d":"At-fault insurance detail", "ocomp-d":"Company detail", "docs-d":"Documentation type", outcome:"Call outcome", cbtime:"Callback time" };
+  var NAMES = { behalf:"Calling on behalf of", heard:"How did you hear", date:"Incident date", city:"Incident city", est:"Establishment name", loc:"Location details", what:"What happened", spec:"Specific details", inj:"Injuries", tx:"Ongoing treatment", "fault-d":"Fault detail", "ins-d":"PC insurance detail", "oins-d":"At-fault insurance detail", "ocomp-d":"Company detail", "docs-d":"Documentation type", outcome:"Call outcome", cbtime:"Callback time" };
 
   function v(id) { var e = $(id); if (!e) return ""; return e.type === "checkbox" ? e.checked : e.value.trim(); }
   function one(s) { return String(s).replace(/\s*\n+\s*/g, " "); }
@@ -665,10 +653,10 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
     out.what.push({ k: "What happened (as PC reports)", v: one(v("what")) || NP, name: "What happened" });
     out.what.push({ k: "Specific details", v: one(v("spec")) || NP });
     var inj = one(v("inj")), picks = injPicked();
-    out.tx.push({ k: "Injuries (as reported)", v: [inj, picks.length ? "Serious injury selections: " + picks.join(", ") + "." : ""].filter(Boolean).join(" ") || NP, name: "Injuries" });
-    out.tx.push({ k: "Treatment", v: one(v("tx")) || NP });
-    // Fault and insurance: always for MVA; for other types only when answered.
-    function opt2(line) { if (t === "mva" || line.v !== NP) out.legal.push(line); }
+    out.tx.push({ k: "Injuries (as reported)", v: [inj, picks.length ? "Injury summary: " + picks.join(", ") + "." : ""].filter(Boolean).join(" ") || NP, name: "Injuries" });
+    out.tx.push({ k: "Ongoing treatment", v: one(v("tx")) || NP });
+    // Fault and insurance lines appear for every case type, matching the field sheet.
+    function opt2(line) { out.legal.push(line); }
     opt2({ k: "PC at fault (as PC reports)", v: yn("fault", "fault-d"), name: "PC at fault" });
     out.legal.push({ k: "Represented by an attorney", v: v("atty") || NP, name: "Represented" });
     out.legal.push({ k: "Claim settled or resolved", v: v("settled") || NP, name: "Settled" });
@@ -693,8 +681,11 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
       });
     }
     sec("CALL CHECKS", d.check); sec("WHAT HAPPENED", d.what); sec("INJURY AND TREATMENT", d.tx); sec("LEGAL", d.legal);
-    if (compact && notAsked.length) text.push("Not asked (raise on callback): " + notAsked.join(", "));
-    if (compact && unknown.length) text.push("Asked, PC did not know: " + unknown.join(", "));
+    if (compact && (notAsked.length || unknown.length)) {
+      text.push("MISSING");
+      if (notAsked.length) text.push("- Not asked (raise on callback): " + notAsked.join(", "));
+      if (unknown.length) text.push("- Asked, PC didn't know (request documents): " + unknown.join(", "));
+    }
     return text.join("\n");
   }
 
@@ -721,8 +712,6 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
     var promise = /\b(strong case|good case|definitely|guarantee[ds]?|for sure|(?:you'?ll|will) (?:get|receive|win)|settle(?:ment)? (?:of|for) \$|is (?:legally )?(?:responsible|liable)|(?:attorney|lawyer|someone) will (?:call|contact)[^.]*\b(?:(?:in|within)\s+(?:\d+|an?|one|two|few|the next)|today|tonight|tomorrow))\b/i;
     if (promise.test(v("outcome"))) f.push({ bad: true, t: "Call outcome contains a possible promise or legal conclusion. Write only confirmed next steps." });
     if (!v("c-legal") || !v("c-promise")) f.push({ t: "Before ending the call, confirm: no legal advice, no promises." });
-    if (v("cemail") && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v("cemail"))) f.push({ t: "Email looks incomplete. Read it back to the caller." });
-    if (v("cphone") && v("cphone").replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "").length !== 10) f.push({ t: "Phone should have 10 digits. Read it back to the caller." });
     if (!disp) f.push({ bad: true, t: "Call disposition not selected. Every call needs one." });
     if (disp === CONFIG.dispTransfer && !v("xferok")) f.push({ bad: true, t: "Use \"" + CONFIG.dispTransfer + "\" only if the partner accepted the live connection. Otherwise use \"" + CONFIG.dispAttempted + "\"." });
     if (disp === CONFIG.dispCallback && !v("cbtime")) f.push({ bad: true, t: "Add the agreed callback date and time." });
