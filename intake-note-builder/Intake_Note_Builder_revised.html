@@ -170,6 +170,23 @@ body.quick .full-only, body.quick .scr { display:none !important; }
 body:not(.quick) .more > summary { display:none; }
 .more[open] > summary { margin-bottom:12px; }
 .more-body { display:grid; gap:14px; }
+.top-strip { position:sticky; top:0; z-index:5; display:grid; gap:6px; }
+.top-strip:not(:has(> :not([hidden]))) { display:none; }
+.opening { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 14px; border-radius:6px; background:var(--danger-bg); color:var(--danger); border:1px solid var(--danger); font-size:.9rem; }
+.opening strong { font-size:.78rem; letter-spacing:.12em; text-transform:uppercase; }
+.opening button { padding:6px 12px; font-size:.86rem; font-weight:600; border-color:var(--danger); color:var(--danger); background:var(--surface); }
+.opening button[aria-pressed="true"] { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
+.opening-note { font-weight:600; }
+.bridge { padding:10px 14px; border-radius:6px; background:var(--warn-bg); color:var(--fg); border:2px solid var(--warn); font-size:1rem; font-weight:500; }
+.bridge::before { content:"Say while you type:  "; color:var(--warn); font-size:.74rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.hangup { display:grid; gap:3px; border:1px solid var(--line); border-radius:6px; padding:10px 12px; font-size:.84rem; }
+.hangup-title { font-size:.74rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
+.hangup .ok { color:var(--accent); }
+.hangup .no { color:var(--danger); font-weight:500; }
+.hangup .block::after { content:"  (blocks Copy)"; font-weight:400; font-size:.76rem; }
+.hangup .paste { margin-top:4px; padding:6px 8px; border-radius:5px; background:var(--warn-bg); color:var(--warn); font-weight:600; }
+.disp-suggest { font-size:.84rem; color:var(--warn); }
+.disp-suggest button { margin-left:6px; padding:2px 10px; font-size:.78rem; }
 [hidden] { display:none !important; }
 </style>
 </head>
@@ -201,12 +218,27 @@ body:not(.quick) .more > summary { display:none; }
     </div>
   </header>
 
+  <div class="top-strip">
+  <div class="opening" id="opening" role="region" aria-label="Call opening">
+    <strong>Opening</strong>
+    <span class="opening-lead">Greet right away. Then, in order:</span>
+    <button type="button" id="ob-rec" aria-pressed="false">1. Recording disclosure given</button>
+    <button type="button" id="ob-phone" aria-pressed="false">2. Phone number verified</button>
+    <button type="button" id="ob-adult" aria-pressed="false">3. PC is 18 or older</button>
+    <button type="button" id="ob-minor" aria-pressed="false">Under 18</button>
+    <span class="opening-note" id="opening-note"></span>
+  </div>
+  <div class="bridge" id="bridge" role="status" hidden></div>
+  </div>
+
   <section class="panel help" id="help" hidden aria-label="How this works">
     <div class="help-top"><h2 class="sec" style="margin:0;border:0;padding:0">How this works</h2><button type="button" id="help-close">Close</button></div>
 
+<h2>Quality guards</h2>
+<ul><li><strong>Opening banner</strong> — the red bar at the top stays until the recording disclosure, phone verification and age check are done. Greet right away, then tap each one as you say it.</li><li><strong>Copy note is blocked</strong> until every autofail item is marked: recording disclosure, phone verification, age, lead source question, no legal advice and no promises.</li><li><strong>Say while you type</strong> — after about 8 seconds of typing without a pause, a line appears that you can say so the caller isn't left in silence. It can only see typing on this page, not in Salesforce.</li><li><strong>Treatment</strong> — Ask next has five separate treatment questions: ER or hospital, imaging, ongoing treatment, medications and follow-up appointments.</li><li><strong>Disposition</strong> — always visible, with a red flag until one is picked. When your notes mention a callback, a transfer, a do-not-call request or a decline rule, it suggests the matching disposition. Set the same one in the phone system.</li><li><strong>Before you hang up</strong> — the list above Copy note shows what is still open. After you copy, it reminds you to paste the note into Salesforce before the call ends.</li></ul>
 <h2>Quick mode</h2>
 <p>Quick mode is the default. It is for working with Salesforce open: the facts go in Salesforce once, and this page holds only what Salesforce can't.</p>
-<ul><li><strong>During the call</strong> — keep this page open. Pick the case type and type the story into What happened as the PC talks. Ask next shows what to ask.</li><li><strong>Salesforce facts</strong> — when you enter a fact in Salesforce, tap its chip here. Don't retype it. Date, city and state, injuries, treatment and establishment take one tap for "in Salesforce" and a second for "PC didn't know". Fault, attorney, settled, insurance, company driver and police report take Yes, No or Unknown, so the checks can compare them with the story.</li><li><strong>The note</strong> — call checks, case type, the story, details, next steps and what is missing. It does not repeat the Salesforce fields. Paste it into General Information at the end.</li><li><strong>Full form</strong> — uncheck Quick mode in the header to get every field, the call script and the CRM fields tab. Switching keeps what you entered.</li></ul>
+<ul><li><strong>During the call</strong> — keep this page open. Pick the case type and type the story into What happened as the PC talks. Ask next shows what to ask.</li><li><strong>Salesforce facts</strong> — when you enter a fact in Salesforce, tap its chip here. Don't retype it. Date, city and state, injuries and establishment take one tap for "in Salesforce" and a second for "PC didn't know". Fault, attorney, settled, insurance, company driver and police report take Yes, No or Unknown, so the checks can compare them with the story.</li><li><strong>The note</strong> — call checks, case type, the story, details, next steps and what is missing. It does not repeat the Salesforce fields. Paste it into General Information at the end.</li><li><strong>Full form</strong> — uncheck Quick mode in the header to get every field, the call script and the CRM fields tab. Switching keeps what you entered.</li></ul>
 <p>The chips are your word: the page cannot see Salesforce. Tap a chip only after the fact is really entered.</p>
 <p>The sections below describe the full form.</p>
 <p>Follows the Salesforce intake screen. The note goes in General Information.</p>
@@ -491,7 +523,7 @@ MISSING
       <h2 class="sec full-only">Recap and transfer</h2>
       <div class="scr" data-phase="recap"></div>
 
-      <details class="more" id="more"><summary>Voicemail and call disposition</summary><div class="more-body">
+      <details class="more" id="more"><summary>Voicemail script</summary><div class="more-body">
       <h2 class="sec">Voicemail</h2>
       <div class="vm">
         <div class="bar" role="group" aria-label="Voicemail language">
@@ -508,12 +540,16 @@ MISSING
         <div class="bar"><button type="button" id="btn-vm">Voicemail left: set disposition</button></div>
       </div>
 
+      </div></details>
+
       <h2 class="sec" id="sec-disp" tabindex="-1">Call disposition</h2>
       <div class="row">
         <div class="f">
           <label for="disp" class="req">Call disposition</label>
           <select id="disp"></select>
           <span class="hint" id="disp-hint">Pick what actually happened, not what you intended.</span>
+          <span class="hint" id="disp-where"></span>
+          <span class="disp-suggest" id="disp-suggest" hidden></span>
         </div>
         <div class="f" id="wrap-xfer" hidden>
           <span class="lab">Transfer check</span>
@@ -526,7 +562,6 @@ MISSING
         <span class="hint" id="dup-rule" hidden></span>
       </div>
       <p class="safe">Don't change the lead status by hand. Record the disposition and accurate notes.</p>
-      </div></details>
 
       <div class="box">
         <h2 class="sec" style="margin:0;border:0;padding:0">Review writing</h2>
@@ -561,6 +596,8 @@ MISSING
         <span class="hint">Click Copy on a row to copy that value. Alt+C copies the next field and moves on. First name, last name, email and phone are typed into Salesforce directly.</span>
         <div class="sheet" id="sheet"></div>
       </div>
+      <div class="hangup" id="hangup" aria-live="polite"></div>
+      <div class="chk" id="pasted-wrap" hidden><input type="checkbox" id="pasted"><label for="pasted">Pasted into Salesforce General Information</label></div>
       <div class="bar">
         <button type="button" class="primary" id="copy">Copy note</button>
         <button type="button" id="copy-next" class="full-only">Copy next CRM field</button>
@@ -606,6 +643,16 @@ var WC_WORKING = F("wc-working", "Working at the time", "Were you working or on 
 var WC_REPORTED = F("wc-reported", "Reported to employer", "Did you report the injury to your employer or supervisor?",
   { re: /\b(?:reported (?:it )?to|told) (?:my |the |our )?(?:boss|supervisor|manager|employer|hr|work|company)\b/i });
 var CONFIG = {
+  // Lines to say while you type, so the caller never sits in silence. One appears after you have typed
+  // without a pause for bridgeAfterSeconds. Replace them with your approved wording.
+  bridgeAfterSeconds: 8,
+  bridgeLines: [
+    "I'm writing that down so the legal team has all the details.",
+    "Give me just a moment while I note that.",
+    "Thank you. I'm adding that to your file now.",
+    "I want to make sure I get this right. One second while I type it."
+  ],
+  dispositionWhere: "Set the same disposition in the phone system before you finish the call.",
   defaultMode: "quick",                      // "quick" = facts live in Salesforce, chips replace the duplicated fields; "full" = the whole form
   firmName: "[Firm Name]",
   callbackNumber: "[callback number]",       // the public number callers should dial back
@@ -792,8 +839,20 @@ var CONFIG = {
     all: [
       F("date", "Incident date", "What date did this happen?", { field: "date" }),
       F("place", "City and state", "What city and state did it happen in?", { field: ["city", "state"] }),
-      F("inj", "Injuries", "What injuries, pain or symptoms have you had since?", { any: ["inj", "injpicks"] }),
-      F("tx", "Treatment", "What medical treatment have you had so far, if any?", { field: "tx" }),
+      F("inj", "Injuries", "What injuries, pain or symptoms have you had since?", { any: ["inj", "injpicks"],
+        re: /\b(?:pain|hurts?|hurting|injur\w+|broken|fractur\w+|sprain\w*|strain\w*|bruis\w+|lacerat\w+|stitches|concussion|whiplash|sore|swollen|swelling|headaches?|dizz\w+|numb\w*|no injuries|not (?:hurt|injured))\b/i }),
+      // Treatment is five separate questions, so none is skipped. Each is answered by words in the story,
+      // or by "PC didn't know" / "Not relevant" in Ask next.
+      F("tx-er", "ER, hospital or urgent care", "Did you go to the ER, a hospital or urgent care?",
+        { re: /\b(?:ER|emergency room|hospital|urgent care|ambulance|paramedics|no (?:medical )?(?:treatment|attention|care)|did(?:n't| not) (?:go|seek|get))\b/i }),
+      F("tx-imaging", "X-rays, MRI or CT", "Have you had any X-rays, an MRI or a CT scan?",
+        { re: /\b(?:x-?rays?|MRIs?|CT(?: scans?)?|scans?|imaging|no (?:x-?rays?|imaging|scans?|tests))\b/i }),
+      F("tx-ongoing", "Ongoing treatment", "Are you getting any treatment now, like a doctor, physical therapy or a chiropractor?",
+        { re: /\b(?:physical therapy|PT|chiropract\w*|therapy|therapist|ongoing|still (?:treating|seeing|going)|specialist|orthopedic\w*|primary care|no ongoing|not (?:currently |being )?treat\w*)\b/i }),
+      F("tx-meds", "Medications", "Are you taking any medication for it?",
+        { re: /\b(?:medications?|medicine|meds|prescri\w+|pain ?killers?|ibuprofen|tylenol|muscle relaxers?|no (?:medications?|meds|medicine))\b/i }),
+      F("tx-followup", "Follow-up appointments", "Do you have any follow-up appointments scheduled?",
+        { re: /\b(?:follow-?ups?|appointments?|next visit|referr\w+|scheduled (?:for|with|to)|no (?:follow-?ups?|appointments?))\b/i }),
       F("atty", "Already represented", "Are you already working with an attorney on this?", { field: "atty" }),
       F("settled", "Claim settled", "Has any claim for this been settled or resolved?", { field: "settled" })
     ],
@@ -1059,7 +1118,7 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
     var promise = /\b(strong case|good case|definitely|guarantee[ds]?|for sure|(?:you'?ll|will) (?:get|receive|win)|settle(?:ment)? (?:of|for) \$|is (?:legally )?(?:responsible|liable)|(?:attorney|lawyer|someone) will (?:call|contact)[^.]*\b(?:(?:in|within)\s+(?:\d+|an?|one|two|few|the next)|today|tonight|tomorrow))\b/i;
     if (promise.test(v("outcome"))) f.push({ bad: true, t: "Call outcome contains a possible promise or legal conclusion. Write only confirmed next steps." });
     if (!v("c-legal") || !v("c-promise")) f.push({ t: "Before ending the call, confirm: no legal advice, no promises." });
-    if (!disp && !q) f.push({ bad: true, t: "Call disposition not selected. Every call needs one." });
+    if (!disp) f.push({ bad: true, t: "Call disposition not selected. Every call needs one." });
     if (disp === CONFIG.dispTransfer && !v("xferok")) f.push({ bad: true, t: "Use \"" + CONFIG.dispTransfer + "\" only if the partner accepted the live connection. Otherwise use \"" + CONFIG.dispAttempted + "\"." });
     if (disp === CONFIG.dispCallback && !v("cbtime")) f.push({ bad: true, t: "Add the agreed callback date and time." });
     if (disp === CONFIG.dispDnc && v("dialer")) f.push({ bad: true, t: "Do Not Call selected but Add to dialer is checked. Uncheck it." });
@@ -1397,6 +1456,7 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
     $("spec-lab").textContent = quick ? "Details" : "Specific details";
     $("spec-hint").textContent = quick ? "Anything the Salesforce fields can't hold, including injuries and treatment in the PC's own words." : "";
     if (!quick) $("more").open = true;
+    renderOpening(); renderDispHelp();
     renderChips();
     renderVoicemail();
     renderConsistency();
@@ -1438,7 +1498,10 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
       var h = document.createElement("div"); h.className = "flags-title"; h.textContent = "Flags (not copied)"; box.appendChild(h);
       fl.forEach(function (x) { var d = document.createElement("div"); d.className = "flag" + (x.bad ? " bad" : ""); d.textContent = x.t; box.appendChild(d); });
     }
-    $("copy").disabled = hits.length > 0 || blankHits().length > 0;
+    var af = autofailOpen();
+    $("copy").disabled = hits.length > 0 || blankHits().length > 0 || af.length > 0;
+    $("copy").title = af.length ? "Mark every autofail item first: " + af.join(", ") : "";
+    renderHangup(af);
     renderSheet(); renderDR();
   }
 
@@ -1788,6 +1851,101 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
     if (reviewShown) renderReview(); else $("polish-out").textContent = "Undone.";
   });
 
+  // ---- Quality guards: opening banner, autofail gate, before-you-hang-up list, typing nudge ----
+  var copied = false;
+  function ageOk() { return v("c-age") === "adult" || v("c-age") === "minor-ok"; }
+  // Autofail items still open. Copy note stays blocked until this is empty.
+  function autofailOpen() {
+    var o = [];
+    if (!v("c-rec")) o.push("recording disclosure");
+    if (!v("c-phone")) o.push("phone verification");
+    if (!ageOk()) o.push("age verification");
+    if (!v("c-src")) o.push("lead source question");
+    if (!v("c-legal")) o.push("no legal advice");
+    if (!v("c-promise")) o.push("no promises");
+    return o;
+  }
+  function renderOpening() {
+    var rec = v("c-rec"), ph = v("c-phone"), age = v("c-age");
+    $("ob-rec").setAttribute("aria-pressed", rec ? "true" : "false");
+    $("ob-phone").setAttribute("aria-pressed", ph ? "true" : "false");
+    $("ob-adult").setAttribute("aria-pressed", age === "adult" ? "true" : "false");
+    $("ob-minor").setAttribute("aria-pressed", age === "minor-no" || age === "minor-ok" ? "true" : "false");
+    $("opening-note").textContent = age === "minor-no" ? "Under 18: follow the parent/guardian procedure before you continue." : "";
+    $("opening").hidden = !!(rec && ph && ageOk());
+  }
+  $("ob-rec").addEventListener("click", function () { $("c-rec").checked = !$("c-rec").checked; render(); });
+  $("ob-phone").addEventListener("click", function () { $("c-phone").checked = !$("c-phone").checked; render(); });
+  $("ob-adult").addEventListener("click", function () { $("c-age").value = v("c-age") === "adult" ? "" : "adult"; render(); });
+  $("ob-minor").addEventListener("click", function () { $("c-age").value = /^minor/.test(v("c-age")) ? "" : "minor-no"; render(); });
+
+  // Suggest a disposition from what the call notes say. The agent still picks it.
+  function suggestedDisp() {
+    var names = [], out = v("outcome");
+    CONFIG.dispositions.forEach(function (g) { names = names.concat(g.items); });
+    var has = function (n) { return n && names.indexOf(n) >= 0 ? n : ""; };
+    if (/\b(stop calling|don'?t call|do not call|remove (me|my number)|take me off)\b/i.test(out + " " + v("what"))) return has(CONFIG.dispDnc);
+    if (/\b(call(?:ing)? (?:me |them |the pc |pc )?back|call ?back|will call (?:again|back)|follow[- ]?up call|reach (?:me|them|the pc) (?:tomorrow|later|at|on))\b/i.test(out)) return has(CONFIG.dispCallback);
+    if (v("xferok") || /\btransferred\b/i.test(out)) return has(CONFIG.dispTransfer);
+    if (drChecked().length) return findDisp(names, /not qualify|decline|turn ?down/i);
+    return "";
+  }
+  function renderDispHelp() {
+    $("disp-where").textContent = CONFIG.dispositionWhere || "";
+    var sug = suggestedDisp(), box = $("disp-suggest");
+    if (box.getAttribute("data-s") === sug + "|" + v("disp")) return;
+    box.setAttribute("data-s", sug + "|" + v("disp")); box.textContent = "";
+    box.hidden = !sug || sug === v("disp"); if (box.hidden) return;
+    box.appendChild(document.createTextNode("Your notes suggest: " + sug));
+    var b = el("button", null, "Use"); b.type = "button"; b.setAttribute("aria-label", "Use disposition " + sug);
+    b.addEventListener("click", function () { $("disp").value = sug; render(); });
+    box.appendChild(b);
+  }
+
+  // Final step before Copy note. Autofail items block Copy; the rest are warnings.
+  function renderHangup(af) {
+    var ps = probeState(), tx = ps.facts.filter(function (x) { return /^tx-/.test(x.id); });
+    var txOpen = tx.filter(function (x) { return x.state === "open"; }).length;
+    var story = v("what"), storyOk = !!story && !/_{3,}/.test(story) && (story.match(/\S+/g) || []).length >= 8;
+    var inj = ps.facts.filter(function (x) { return x.id === "inj"; })[0];
+    var items = [
+      { ok: !!(v("c-rec") && v("c-phone")), t: "Recording disclosure and phone verified", block: true },
+      { ok: ageOk(), t: "Age verified (18 or older, or guardian procedure followed)", block: true },
+      { ok: !!v("c-src"), t: "Asked how the PC heard about us", block: true },
+      { ok: storyOk, t: "How it happened is written down" },
+      { ok: !inj || inj.state !== "open", t: "Injuries are written down or marked" },
+      { ok: !tx.length || !txOpen, t: tx.length && txOpen ? "Treatment questions: " + txOpen + " of " + tx.length + " still to ask" : "All treatment questions asked" },
+      { ok: !!v("outcome"), t: "Next steps told to the PC and written down" },
+      { ok: !!v("disp"), t: "Disposition chosen here and in the phone system" },
+      { ok: !!(v("c-legal") && v("c-promise")), t: "No legal advice and no promises confirmed", block: true }
+    ];
+    var sig = items.map(function (i) { return (i.ok ? 1 : 0) + i.t; }).join("|") + "#" + copied + $("pasted").checked;
+    var box = $("hangup");
+    $("pasted-wrap").hidden = !copied;
+    if (box.getAttribute("data-s") === sig) return; box.setAttribute("data-s", sig); box.textContent = "";
+    var left = items.filter(function (i) { return !i.ok; }).length;
+    box.appendChild(el("div", "hangup-title", "Before you hang up" + (left ? ": " + left + " left" : ": all done")));
+    items.forEach(function (i) { box.appendChild(el("div", (i.ok ? "ok" : "no") + (!i.ok && i.block ? " block" : ""), (i.ok ? "\u2713 " : "\u2717 ") + i.t)); });
+    if (copied && !$("pasted").checked) box.appendChild(el("div", "paste", "Copied. Paste it into Salesforce General Information now, before the call ends. Then tick Pasted below."));
+  }
+  $("pasted").addEventListener("change", render);
+
+  // Typing nudge: after typing without a pause, show a line to say so the caller isn't left in silence.
+  var typeStart = 0, lastKey = 0, bridgeIdx = 0, bridgeTimer = null;
+  function hideBridge() { clearTimeout(bridgeTimer); $("bridge").hidden = true; typeStart = 0; }
+  function showBridge() {
+    var lines = CONFIG.bridgeLines || []; if (!lines.length) return;
+    $("bridge").textContent = "\u201C" + lines[bridgeIdx++ % lines.length] + "\u201D"; $("bridge").hidden = false;
+    clearTimeout(bridgeTimer); bridgeTimer = setTimeout(hideBridge, 8000);
+  }
+  $("form").addEventListener("keydown", function (e) {
+    var t = e.target; if (!t || !/^(TEXTAREA|INPUT)$/.test(t.tagName) || t.type === "checkbox" || e.key.length !== 1) return;
+    var now = Date.now();
+    if (!typeStart || now - lastKey > 4000) typeStart = now;   // a pause starts a new stretch of typing
+    lastKey = now;
+    if ($("bridge").hidden && now - typeStart >= (CONFIG.bridgeAfterSeconds == null ? 8 : CONFIG.bridgeAfterSeconds) * 1000) { showBridge(); typeStart = now; }
+  });
+
   // ---- Quick mode: the facts live in Salesforce; chips replace the duplicated fields ----
   var sfMarks = {}, sfSig = null;   // field id -> "sf" (in Salesforce) | "dk" (PC didn't know)
   // Answer chips set the same fields the full form uses, so every check keeps working.
@@ -1805,7 +1963,6 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
     { label: "Incident date", fields: ["date"] },
     { label: "City and state", fields: ["city", "state"] },
     { label: "Injuries", fields: ["inj"] },
-    { label: "Treatment", fields: ["tx"] },
     { label: "Establishment / employer", fields: ["est"], show: function () { return needsEst(); } }
   ];
   function isQuick() { return $("quick").checked; }
@@ -1917,7 +2074,7 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
   function clearForm() {
     FIELDS.forEach(function (id) { var e = $(id); if (!e) return; if (e.type === "checkbox") e.checked = false; else e.value = ""; });
     undoStack = []; $("btn-undo").disabled = true; $("polish-out").textContent = "";
-    sfMarks = {}; sfSig = null;
+    sfMarks = {}; sfSig = null; copied = false; $("pasted").checked = false; hideBridge();
     rejected = {}; ignoreWords = {}; probeMarks = {}; probeSig = null; reviewShown = false; copyWarned = false;
     crmPtr = 0; crmDone = {}; lastTemplate = "";
     Array.prototype.forEach.call(document.querySelectorAll(".dr-chk"), function (c) { c.checked = false; });
@@ -1928,9 +2085,12 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
 
   function copyNote() {
     if (idHits().length || blankHits().length) { toast("Fix the red flags before copying"); return; }
+    var open = autofailOpen();
+    if (open.length) { toast("Mark every autofail item first: " + open.join(", ")); return; }
     var pc = pendingCount();
     if (pc && !copyWarned) { copyWarned = true; toast(pc + " writing suggestion" + (pc === 1 ? "" : "s") + " not reviewed. Click Review writing, or copy again to copy anyway."); return; }
     copyText(buildNote());
+    copied = true; $("pasted").checked = false; render();
   }
   function newLead() { clearForm(); render(); window.scrollTo(0, 0); toast("New lead started"); }
   function toggleHelp(open) {
@@ -1981,7 +2141,7 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
   window.addEventListener("pagehide", clearForm);
 
   window.__test = { polishText: polishText, idHits: idHits, addsNothing: addsNothing, grammarIssues: grammarIssues, consistency: consistency,
-    isQuick: isQuick, note: function () { return buildNote(); }, spellIssues: spellIssues, suggest: suggest, grammarSuggestions: grammarSuggestions, reviewItems: reviewItems, probeState: probeState, isKnown: isKnown }; // for automated checks; holds no data
+    isQuick: isQuick, autofailOpen: autofailOpen, suggestedDisp: suggestedDisp, showBridge: showBridge, note: function () { return buildNote(); }, spellIssues: spellIssues, suggest: suggest, grammarSuggestions: grammarSuggestions, reviewItems: reviewItems, probeState: probeState, isKnown: isKnown }; // for automated checks; holds no data
   render(); renderQR(); resetIdle();
 })();
 </script>
