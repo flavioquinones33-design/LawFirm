@@ -8,7 +8,43 @@ In free-text fields, describe roles (the other driver, the store manager), not n
 
 Do not paste this note into AI tools or personal apps. The form clears after 10 minutes of inactivity and when the tab closes. Nothing is saved.
 
+## Quick mode
+
+Quick mode is the default. It is for working with Salesforce open: the facts go in Salesforce once, and this page holds only what Salesforce can't.
+
+- **During the call** — keep this page open. Pick the case type and type the story into What happened as the PC talks. Ask next shows what to ask.
+- **Salesforce facts** — when you enter a fact in Salesforce, tap its chip here. Don't retype it. Incident date, City and state, Injuries, Treatment and Establishment / employer take one tap for "in Salesforce" and a second for "PC didn't know". At fault, Has attorney and Settled take Yes or No. PC insured, At-fault party insured, At-fault driving for a company and Police report take Yes, No or Unknown, so the checks can compare them with the story.
+- **What you type** — Case type, What happened, Details (anything the Salesforce fields can't hold, including injuries and treatment in the PC's own words) and Call outcome and next steps.
+- **The note** — call checks, case type, the story, details, next steps and what is missing. It does not repeat the Salesforce fields. Paste it into General Information at the end.
+- **Voicemail and call disposition** — collapsed; open them when needed. The "disposition not selected" flag is off in Quick mode.
+- **Full form** — uncheck Quick mode in the header to get every field, the call script and the CRM fields tab. Switching keeps what you entered.
+
+The chips are your word: the page cannot see Salesforce. Tap a chip only after the fact is really entered.
+
+Example Quick note (made-up data):
+
+```
+CALL CHECKS
+- Recording disclosed: Yes
+- Phone verified verbally: Yes
+- Age verification: Verified 18 or older
+WHAT HAPPENED
+- Case type: Motor Vehicle Accident (MVA)
+- What happened (as PC reports): PC reports being the driver of a company van while making a delivery when another car ran a red light and hit the driver side.
+- Details: Neck and lower back pain. Went to the ER the same day.
+NEXT STEPS
+- Call outcome and next steps: Not provided
+MISSING
+- Not asked (raise on callback): Injuries, Treatment, Claim settled, Police report, At-fault driver working, Employer name, Reported to employer
+- Asked, PC didn't know (request documents): At-fault insurance
+```
+
+The sections below describe the full form.
+
 ## Header
+
+[ ] Quick mode
+
 
 **Your first name** — Used in the call script and voicemail.
 
