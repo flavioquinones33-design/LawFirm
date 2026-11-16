@@ -157,6 +157,19 @@ kbd { font:600 .74rem var(--mono); border:1px solid var(--line); border-bottom-w
 .help th { color:var(--muted); border-top:0; }
 .help code { font:.84em var(--mono); background:var(--note-bg); border:1px solid var(--line); border-radius:4px; padding:0 4px; }
 .help pre.note { max-height:none; }
+.quick-only { display:none; }
+body.quick .quick-only { display:grid; }
+body.quick .full-only, body.quick .scr { display:none !important; }
+.sf { display:grid; gap:8px; }
+.sf-row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:.86rem; }
+.sf-lab { min-width:200px; }
+.sf button { padding:3px 12px; font-size:.8rem; border-radius:999px; }
+.sf button[aria-pressed="true"] { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
+.sf button.dk { background:var(--warn-bg); color:var(--warn); border-color:var(--warn); }
+.more > summary { cursor:pointer; font-size:.84rem; font-weight:600; color:var(--accent); }
+body:not(.quick) .more > summary { display:none; }
+.more[open] > summary { margin-bottom:12px; }
+.more-body { display:grid; gap:14px; }
 [hidden] { display:none !important; }
 </style>
 </head>
@@ -170,7 +183,8 @@ kbd { font:600 .74rem var(--mono); border:1px solid var(--line); border-bottom-w
     <div class="bar">
       <label for="agent" class="hint">Your first name</label>
       <input type="text" id="agent" placeholder="For the script" style="width:140px">
-      <div class="chk"><input type="checkbox" id="showscript" checked><label for="showscript">Show call script</label></div>
+      <div class="chk"><input type="checkbox" id="quick" checked><label for="quick">Quick mode</label></div>
+      <div class="chk full-only"><input type="checkbox" id="showscript" checked><label for="showscript">Show call script</label></div>
       <details class="keys">
         <summary>Shortcuts</summary>
         <table>
@@ -190,6 +204,11 @@ kbd { font:600 .74rem var(--mono); border:1px solid var(--line); border-bottom-w
   <section class="panel help" id="help" hidden aria-label="How this works">
     <div class="help-top"><h2 class="sec" style="margin:0;border:0;padding:0">How this works</h2><button type="button" id="help-close">Close</button></div>
 
+<h2>Quick mode</h2>
+<p>Quick mode is the default. It is for working with Salesforce open: the facts go in Salesforce once, and this page holds only what Salesforce can't.</p>
+<ul><li><strong>During the call</strong> — keep this page open. Pick the case type and type the story into What happened as the PC talks. Ask next shows what to ask.</li><li><strong>Salesforce facts</strong> — when you enter a fact in Salesforce, tap its chip here. Don't retype it. Date, city and state, injuries, treatment and establishment take one tap for "in Salesforce" and a second for "PC didn't know". Fault, attorney, settled, insurance, company driver and police report take Yes, No or Unknown, so the checks can compare them with the story.</li><li><strong>The note</strong> — call checks, case type, the story, details, next steps and what is missing. It does not repeat the Salesforce fields. Paste it into General Information at the end.</li><li><strong>Full form</strong> — uncheck Quick mode in the header to get every field, the call script and the CRM fields tab. Switching keeps what you entered.</li></ul>
+<p>The chips are your word: the page cannot see Salesforce. Tap a chip only after the fact is really entered.</p>
+<p>The sections below describe the full form.</p>
 <p>Follows the Salesforce intake screen. The note goes in General Information.</p>
 <p>First name, last name, email and phone go straight into Salesforce. They are not part of this form, and the note will not copy while a phone, email, address, ID number, labeled date of birth, plate, or claim/policy/record number is detected.</p>
 <p>In free-text fields, describe roles (the other driver, the store manager), not names or numbers.</p>
@@ -387,9 +406,9 @@ MISSING
 
       <div class="scr" data-phase="opening"></div>
 
-      <h2 class="sec" id="sec-contact" tabindex="-1">Contact</h2>
+      <h2 class="sec full-only" id="sec-contact" tabindex="-1">Contact</h2>
       <div class="scr" data-phase="contact"></div>
-      <div class="row">
+      <div class="row full-only">
         <div class="f"><label for="zip">Residence ZIP</label><input type="text" id="zip" inputmode="numeric" placeholder="00000"></div>
         <div class="f"><label for="behalf">Calling on behalf of</label><input type="text" id="behalf" placeholder="Self, family member, other"></div>
         <div class="f">
@@ -398,7 +417,7 @@ MISSING
         </div>
         <div class="f"><label for="heard">How did you hear about us?</label><input type="text" id="heard" placeholder="As the PC said it"><span class="hint">Ask openly. Don't guess.</span></div>
       </div>
-      <div class="chk"><input type="checkbox" id="dialer"><label for="dialer">Add to Dialer</label></div>
+      <div class="chk full-only"><input type="checkbox" id="dialer"><label for="dialer">Add to Dialer</label></div>
 
       <h2 class="sec" id="sec-incident" tabindex="-1">Incident</h2>
       <div class="scr" data-phase="incident"></div>
@@ -408,7 +427,7 @@ MISSING
           <select id="type"></select>
           <span class="hint">Choose from what the PC described, not the campaign.</span>
         </div>
-        <div class="f" id="wrap-sub" hidden>
+        <div class="f full-only" id="wrap-sub" hidden>
           <label for="sub">PL subtype</label>
           <select id="sub"></select>
           <span class="hint">Use Other only when the facts point to it.</span>
@@ -418,55 +437,61 @@ MISSING
         <div class="chk"><input type="checkbox" id="dual"><label for="dual">Facts also fit a second case type</label></div>
         <div id="wrap-dual" hidden><label for="type2">Second type</label><select id="type2"></select></div>
       </div>
-      <div class="row">
+      <div class="f quick-only" id="sf-wrap">
+        <span class="lab">Salesforce facts</span>
+        <span class="hint">Already in Salesforce? Tap it here and don't retype it. The taps drive the checks and Ask next; they are not copied into the note.</span>
+        <div class="sf" id="sf"></div>
+      </div>
+      <div class="row full-only">
         <div class="f"><label for="date">Incident date</label><input type="text" id="date" placeholder="MM/DD/YYYY"><span class="hint">Salesforce format is MM/DD/YYYY. Add the time after it if you have one.</span></div>
         <div class="f"><label for="city">Incident city</label><input type="text" id="city"></div>
         <div class="f"><label for="state">Incident state</label><select id="state"></select></div>
       </div>
-      <div class="f" id="wrap-est" hidden>
+      <div class="f full-only" id="wrap-est" hidden>
         <label for="est" class="req">Name of establishment / property</label>
         <input type="text" id="est" placeholder="Business name only">
         <span class="hint">Required for Premises Liability and Workers' Comp. Name only, no street address.</span>
       </div>
-      <div class="f"><label for="loc">Location details</label><input type="text" id="loc" placeholder="Freeway, store, intersection"><span class="hint">Cross streets or a landmark only. No house number or street address.</span></div>
+      <div class="f full-only"><label for="loc">Location details</label><input type="text" id="loc" placeholder="Freeway, store, intersection"><span class="hint">Cross streets or a landmark only. No house number or street address.</span></div>
       <div class="f"><label for="what">What happened (as PC reports)</label><textarea id="what" placeholder="PC reports..."></textarea></div>
       <div class="f"><label for="spec" id="spec-lab">Specific details</label><textarea id="spec"></textarea><span class="hint" id="spec-hint"></span></div>
 
-      <h2 class="sec" id="sec-injury" tabindex="-1">Injury</h2>
+      <h2 class="sec full-only" id="sec-injury" tabindex="-1">Injury</h2>
       <div class="scr" data-phase="injury"></div>
-      <div class="f">
+      <div class="f full-only">
         <span class="lab">Injury summary, select all that apply</span>
         <div class="checks" id="injchecks"></div>
         <span class="hint">Check only what the PC stated.</span>
       </div>
-      <div class="f"><label for="inj">Injuries in the PC's words</label><textarea id="inj"></textarea></div>
-      <div class="f"><label for="tx">Ongoing treatment</label><textarea id="tx" placeholder="ER, urgent care, hospital, imaging, other"></textarea></div>
+      <div class="f full-only"><label for="inj">Injuries in the PC's words</label><textarea id="inj"></textarea></div>
+      <div class="f full-only"><label for="tx">Ongoing treatment</label><textarea id="tx" placeholder="ER, urgent care, hospital, imaging, other"></textarea></div>
 
-      <h2 class="sec" id="sec-legal" tabindex="-1">Legal</h2>
+      <h2 class="sec full-only" id="sec-legal" tabindex="-1">Legal</h2>
       <div class="scr" data-phase="legal"></div>
-      <div class="row">
+      <div class="row full-only">
         <div class="f"><label for="fault">Were you determined at fault?</label><select id="fault" class="yn"></select><input type="text" id="fault-d" placeholder="Detail, as the PC reported it"></div>
         <div class="f"><label for="atty">Already represented by an attorney?</label><select id="atty" class="yn"></select></div>
         <div class="f"><label for="settled">Claim already settled or resolved?</label><select id="settled" class="yn"></select></div>
       </div>
-      <div class="f"><span class="lab">Do you or At-Fault have insurance?</span><span class="hint">The Salesforce question is one field. Say whose below.</span></div>
-      <div class="row">
+      <div class="f full-only"><span class="lab">Do you or At-Fault have insurance?</span><span class="hint">The Salesforce question is one field. Say whose below.</span></div>
+      <div class="row full-only">
         <div class="f"><label for="ins">PC has insurance</label><select id="ins" class="ynd"></select><input type="text" id="ins-d" placeholder="Type, e.g. auto, health"></div>
         <div class="f"><label for="oins" id="oins-lab">At-fault party insured</label><select id="oins" class="ynd"></select><input type="text" id="oins-d" placeholder="Only if the PC gave it"></div>
         <div class="f" id="wrap-ocomp"><label for="ocomp">At-fault party driving for a company?</label><select id="ocomp" class="ynd"></select><input type="text" id="ocomp-d" placeholder="Company or vehicle type, if given"></div>
       </div>
-      <div class="f">
+      <div class="f full-only">
         <label for="docs">Police report / other documentation</label>
         <select id="docs" class="ynd"></select>
         <input type="text" id="docs-d" placeholder="Type only: police report, photos, medical records">
         <span class="hint">Yes, No or Unknown, and the type (police report, photos, medical records). No report or claim numbers.</span>
       </div>
-      <span class="hint">The note lists fault and insurance lines for every case type, matching the field sheet. For Premises Liability and Workers' Comp, the at-fault party is the property owner or employer.</span>
+      <span class="hint full-only">The note lists fault and insurance lines for every case type, matching the field sheet. For Premises Liability and Workers' Comp, the at-fault party is the property owner or employer.</span>
       <div class="f"><label for="outcome">Call outcome and next steps</label><textarea id="outcome" placeholder="Write only what you confirmed or did."></textarea></div>
 
-      <h2 class="sec">Recap and transfer</h2>
+      <h2 class="sec full-only">Recap and transfer</h2>
       <div class="scr" data-phase="recap"></div>
 
+      <details class="more" id="more"><summary>Voicemail and call disposition</summary><div class="more-body">
       <h2 class="sec">Voicemail</h2>
       <div class="vm">
         <div class="bar" role="group" aria-label="Voicemail language">
@@ -501,6 +526,7 @@ MISSING
         <span class="hint" id="dup-rule" hidden></span>
       </div>
       <p class="safe">Don't change the lead status by hand. Record the disposition and accurate notes.</p>
+      </div></details>
 
       <div class="box">
         <h2 class="sec" style="margin:0;border:0;padding:0">Review writing</h2>
@@ -524,11 +550,11 @@ MISSING
       </div>
       <div class="tabs" role="tablist">
         <button type="button" class="tab" role="tab" id="tab-note" aria-selected="true" aria-controls="p-note">Note</button>
-        <button type="button" class="tab" role="tab" id="tab-crm" aria-selected="false" aria-controls="p-crm">CRM fields</button>
+        <button type="button" class="tab full-only" role="tab" id="tab-crm" aria-selected="false" aria-controls="p-crm">CRM fields</button>
       </div>
       <div id="p-note" role="tabpanel" aria-labelledby="tab-note" style="display:grid;gap:12px">
-        <div class="chk"><input type="checkbox" id="compact"><label for="compact">Compact: hide "Not provided" lines and list them under Missing</label></div>
-        <span class="hint">Missing is split in two: Not asked (raise on callback) and Asked, PC didn't know (request documents).</span>
+        <div class="chk full-only"><input type="checkbox" id="compact"><label for="compact">Compact: hide "Not provided" lines and list them under Missing</label></div>
+        <span class="hint full-only">Missing is split in two: Not asked (raise on callback) and Asked, PC didn't know (request documents).</span>
         <pre id="note"></pre>
       </div>
       <div id="p-crm" role="tabpanel" aria-labelledby="tab-crm" hidden style="display:grid;gap:8px">
@@ -537,7 +563,7 @@ MISSING
       </div>
       <div class="bar">
         <button type="button" class="primary" id="copy">Copy note</button>
-        <button type="button" id="copy-next">Copy next CRM field</button>
+        <button type="button" id="copy-next" class="full-only">Copy next CRM field</button>
         <span class="toast" id="toast" role="status"></span>
       </div>
       <div class="flags" id="flags"></div>
@@ -580,6 +606,7 @@ var WC_WORKING = F("wc-working", "Working at the time", "Were you working or on 
 var WC_REPORTED = F("wc-reported", "Reported to employer", "Did you report the injury to your employer or supervisor?",
   { re: /\b(?:reported (?:it )?to|told) (?:my |the |our )?(?:boss|supervisor|manager|employer|hr|work|company)\b/i });
 var CONFIG = {
+  defaultMode: "quick",                      // "quick" = facts live in Salesforce, chips replace the duplicated fields; "full" = the whole form
   firmName: "[Firm Name]",
   callbackNumber: "[callback number]",       // the public number callers should dial back
   dispVoicemail: "Left Voicemail",           // disposition set by the "Voicemail left" button
@@ -640,7 +667,7 @@ var CONFIG = {
       when: function (f, m) { var y = (f("date").match(/\b(19|20)\d{2}\b/) || [])[0]; return y && y !== m[0]; },
       msg: "A year in the story doesn't match the incident date field. Confirm the date." },
     { id: "reldate", re: /\b(yesterday|last (night|week|month|year|monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|april|may|june|july|august|september|october|november|december)|\d+ (days?|weeks?|months?|years?) ago)\b/i,
-      when: function (f) { return !f("date"); },
+      when: function (f) { return !f("date") && !f.sf("date"); },
       msg: "Story gives a relative date. Ask for the exact date and fill in the incident date." },
     { id: "settled", re: /\b(settled|settlement|offered (me )?(a )?(check|money|payment)|got (a check|paid)|cashed (a|the) check|signed (a|the) release)\b/i,
       when: function (f) { return f("settled") !== "Yes"; },
@@ -956,7 +983,31 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
     all.forEach(function (fc) { if (fc && probeMarks[fc.id] === "dk") [].concat(fc.field || [], fc.any || []).forEach(function (id) { out[id] = 1; }); });
     return out;
   }
+  // Quick mode note: only what the Salesforce fields can't hold.
+  function buildQuickNote() {
+    var d = lines(), ps = probeState(), text = [], t = v("type");
+    text.push("CALL CHECKS"); d.check.forEach(function (l) { text.push("- " + l.k + ": " + l.v); });
+    text.push("WHAT HAPPENED");
+    text.push("- Case type: " + (typeLabel(t) || "Not specified"));
+    if (v("dual")) text.push("- Possible dual case type: " + (typeLabel(t) || "[not specified]") + " and " + (v("type2") || "[not selected]"));
+    text.push("- What happened (as PC reports): " + (one(v("what")) || NP));
+    if (v("spec")) text.push("- Details: " + one(v("spec")));
+    text.push("NEXT STEPS");
+    text.push("- Call outcome and next steps: " + (one(v("outcome")) || NP));
+    if (v("disp")) text.push("- Call disposition: " + v("disp") + (v("disp") === CONFIG.dispCallback && v("cbtime") ? " - " + one(v("cbtime")) : ""));
+    var dr = drChecked();
+    if (dr.length) text.push("- Decline criteria noted: " + dr.map(function (r) { return r.rule; }).join("; "));
+    var notAsked = ps.open.filter(function (x) { return x.level === "critical"; }).map(function (x) { return x.label; });
+    var unknown = ps.facts.filter(function (x) { return x.state === "dk" || x.ids.some(function (id) { return v(id) === DK; }); }).map(function (x) { return x.label; });
+    if (notAsked.length || unknown.length) {
+      text.push("MISSING");
+      if (notAsked.length) text.push("- Not asked (raise on callback): " + notAsked.join(", "));
+      if (unknown.length) text.push("- Asked, PC didn't know (request documents): " + unknown.join(", "));
+    }
+    return text.join("\n");
+  }
   function buildNote() {
+    if (isQuick()) return buildQuickNote();
     var compact = v("compact"), d = lines(), notAsked = [], unknown = [], text = [];
     var dk = dkFields();
     function sec(title, arr) {
@@ -986,28 +1037,29 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
 
   // ---- Flags ----
   function buildFlags(hits) {
-    var f = [], t = v("type"), d = v("date"), age = v("c-age"), disp = v("disp");
+    var f = [], t = v("type"), d = v("date"), age = v("c-age"), disp = v("disp"), q = isQuick();
     if (hits.length) f.push({ bad: true, t: "Possible identifier in: " + hits.join(", ") + ". Remove it before copying." });
     if (!v("c-rec")) f.push({ bad: true, t: "Recording disclosure not marked. Give it at the start of the call." });
     if (!v("c-phone")) f.push({ bad: true, t: "Phone number not verified out loud." });
     if (!age) f.push({ bad: true, t: "Age not verified. Ask every caller; never assume." });
     if (age === "minor-no") f.push({ bad: true, t: "PC is under 18. Do not continue until the parent/guardian procedure is followed." });
     if (!v("c-src")) f.push({ bad: true, t: "Lead source question not marked as asked." });
-    else if (!v("heard")) f.push({ t: "Lead source asked but not written down." });
+    else if (!q && !v("heard")) f.push({ t: "Lead source asked but not written down." });
     else if (/^\s*(social( media)?|online|internet|web(site)?|an? ad)\s*\.?\s*$/i.test(v("heard"))) f.push({ bad: true, t: "Lead source is too general. Ask which one." });
     if (/\b(right|correct)\?\s*$/i.test(v("heard"))) f.push({ bad: true, t: "Lead source looks like a leading question. Record only the PC's own answer." });
     if (!t) f.push({ bad: true, t: "Case type is not specified." });
-    if (t === "pl" && !v("sub")) f.push({ t: "Premises subtype not specified." });
-    if (CONFIG.needsEstablishment.indexOf(t) >= 0 && !v("est")) f.push({ bad: true, t: "Establishment / employer name is required for this case type." });
+    if (!q && t === "pl" && !v("sub")) f.push({ t: "Premises subtype not specified." });
+    if (!q && CONFIG.needsEstablishment.indexOf(t) >= 0 && !v("est")) f.push({ bad: true, t: "Establishment / employer name is required for this case type." });
     if (v("dual") && !v("type2")) f.push({ t: "Select the second case type." });
-    if (!d) f.push({ t: "Incident date is missing." });
+    if (q) { /* the date lives in Salesforce */ }
+    else if (!d) f.push({ t: "Incident date is missing." });
     else if (/\b(yesterday|today|tonight|last (night|week|month|year)|ago)\b/i.test(d)) f.push({ t: "Relative date. Convert it to MM/DD/YYYY." });
     else if (!/\b\d{1,2}\/\d{1,2}\/\d{4}\b/.test(d)) f.push({ t: "Write the incident date as MM/DD/YYYY." });
-    if (!v("city") || !v("state")) f.push({ t: "Incident city or state is missing." });
+    if (!q && (!v("city") || !v("state"))) f.push({ t: "Incident city or state is missing." });
     var promise = /\b(strong case|good case|definitely|guarantee[ds]?|for sure|(?:you'?ll|will) (?:get|receive|win)|settle(?:ment)? (?:of|for) \$|is (?:legally )?(?:responsible|liable)|(?:attorney|lawyer|someone) will (?:call|contact)[^.]*\b(?:(?:in|within)\s+(?:\d+|an?|one|two|few|the next)|today|tonight|tomorrow))\b/i;
     if (promise.test(v("outcome"))) f.push({ bad: true, t: "Call outcome contains a possible promise or legal conclusion. Write only confirmed next steps." });
     if (!v("c-legal") || !v("c-promise")) f.push({ t: "Before ending the call, confirm: no legal advice, no promises." });
-    if (!disp) f.push({ bad: true, t: "Call disposition not selected. Every call needs one." });
+    if (!disp && !q) f.push({ bad: true, t: "Call disposition not selected. Every call needs one." });
     if (disp === CONFIG.dispTransfer && !v("xferok")) f.push({ bad: true, t: "Use \"" + CONFIG.dispTransfer + "\" only if the partner accepted the live connection. Otherwise use \"" + CONFIG.dispAttempted + "\"." });
     if (disp === CONFIG.dispCallback && !v("cbtime")) f.push({ bad: true, t: "Add the agreed callback date and time." });
     if (disp === CONFIG.dispDnc && v("dialer")) f.push({ bad: true, t: "Do Not Call selected but Add to dialer is checked. Uncheck it." });
@@ -1060,6 +1112,7 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
   var STORY = ["what", "spec", "inj", "tx", "loc"], dismissed = {};
   function consistency() {
     var f = function (id) { return v(id) || ""; }; f.picks = injPicked();
+    f.sf = function (id) { return isQuick() && !!sfMarks[id]; };
     var out = [];
     CONFIG.consistency.forEach(function (r) {
       if (dismissed[r.id]) return;
@@ -1339,6 +1392,12 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
 
   // ---- Render ----
   function render() {
+    var quick = isQuick();
+    document.body.classList.toggle("quick", quick);
+    $("spec-lab").textContent = quick ? "Details" : "Specific details";
+    $("spec-hint").textContent = quick ? "Anything the Salesforce fields can't hold, including injuries and treatment in the PC's own words." : "";
+    if (!quick) $("more").open = true;
+    renderChips();
     renderVoicemail();
     renderConsistency();
     renderProbe();
@@ -1435,12 +1494,16 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
   });
 
   // ---- Spelling (embedded word list + allow list; nothing leaves this page) ----
+  // Which letters a word uses, as 26 bits. Two words that differ in many letters can't be close, so they are skipped cheaply.
+  function letterMask(w) { var m = 0; for (var i = 0; i < w.length; i++) { var c = w.charCodeAt(i) - 97; if (c >= 0 && c < 26) m |= 1 << c; } return m; }
+  function bits(x) { x = x - ((x >> 1) & 0x55555555); x = (x & 0x33333333) + ((x >> 2) & 0x33333333); return (((x + (x >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24; }
+  var BYMASK = null;
   var DICT = null, BYLEN = null, ALLOW = null, ignoreWords = {}, sugCache = {};
   var CONTRACTIONS = "aren't can't couldn't didn't doesn't don't hadn't hasn't haven't he'd he'll he's i'd i'll i'm i've isn't it'd it'll it's let's mightn't mustn't she'd she'll she's shouldn't that's there's they'd they'll they're they've wasn't we'd we'll we're we've weren't what's where's who's won't wouldn't you'd you'll you're you've y'all ma'am o'clock";
   function loadDict() {
     if (DICT) return;
-    DICT = new Map(); BYLEN = {}; ALLOW = {};
-    var add = function (w) { if (!w || DICT.has(w)) return; DICT.set(w, DICT.size); (BYLEN[w.length] || (BYLEN[w.length] = [])).push(w); };
+    DICT = new Map(); BYLEN = {}; BYMASK = {}; ALLOW = {};
+    var add = function (w) { if (!w || DICT.has(w)) return; DICT.set(w, DICT.size); (BYLEN[w.length] || (BYLEN[w.length] = [])).push(w); (BYMASK[w.length] || (BYMASK[w.length] = [])).push(letterMask(w)); };
     (typeof SCOWL_WORDS === "string" ? SCOWL_WORDS : "").split(" ").forEach(add);
     CONTRACTIONS.split(" ").forEach(add);
     String(CONFIG.allowWords || "").toLowerCase().split(/\s+/).forEach(function (w) { if (w) { ALLOW[w] = 1; add(w); } });
@@ -1487,10 +1550,14 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
     var l = word.toLowerCase();
     if (sugCache.hasOwnProperty(l)) return sugCache[l];
     loadDict();
-    var max = l.length <= 4 ? 1 : 2, found = [];
+    var max = l.length <= 4 ? 1 : 2, found = [], lm = letterMask(l), limit = 2 * max + 2;
     if (SPELL.hasOwnProperty(l)) found.push({ w: SPELL[l], s: -1 });
     for (var len = l.length - max; len <= l.length + max; len++) {
-      (BYLEN[len] || []).forEach(function (w) { var dd = dist(l, w, max); if (dd <= max) found.push({ w: w, s: dd + DICT.get(w) / 1e6 }); });
+      var list = BYLEN[len] || [], masks = BYMASK[len] || [];
+      for (var k = 0; k < list.length; k++) {
+        if (bits(lm ^ masks[k]) > limit) continue;
+        var dd = dist(l, list[k], max); if (dd <= max) found.push({ w: list[k], s: dd + DICT.get(list[k]) / 1e6 });
+      }
     }
     found.sort(function (a, b) { return a.s - b.s; });
     var out = [];
@@ -1721,6 +1788,58 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
     if (reviewShown) renderReview(); else $("polish-out").textContent = "Undone.";
   });
 
+  // ---- Quick mode: the facts live in Salesforce; chips replace the duplicated fields ----
+  var sfMarks = {}, sfSig = null;   // field id -> "sf" (in Salesforce) | "dk" (PC didn't know)
+  // Answer chips set the same fields the full form uses, so every check keeps working.
+  var SF_ANSWERS = [
+    { id: "fault", label: "At fault", opts: ["Yes", "No"] },
+    { id: "atty", label: "Has attorney", opts: ["Yes", "No"] },
+    { id: "settled", label: "Settled", opts: ["Yes", "No"] },
+    { id: "ins", label: "PC insured", opts: ["Yes", "No", DK] },
+    { id: "oins", label: "At-fault party insured", opts: ["Yes", "No", DK] },
+    { id: "ocomp", label: "At-fault driving for a company", opts: ["Yes", "No", DK], show: function () { return !v("type") || v("type") === "mva"; } },
+    { id: "docs", label: "Police report / documentation", opts: ["Yes", "No", DK] }
+  ];
+  // Entered chips only record that the fact is in Salesforce.
+  var SF_ENTERED = [
+    { label: "Incident date", fields: ["date"] },
+    { label: "City and state", fields: ["city", "state"] },
+    { label: "Injuries", fields: ["inj"] },
+    { label: "Treatment", fields: ["tx"] },
+    { label: "Establishment / employer", fields: ["est"], show: function () { return needsEst(); } }
+  ];
+  function isQuick() { return $("quick").checked; }
+  function renderChips() {
+    var box = $("sf"); if (!isQuick()) { sfSig = null; return; }
+    var answers = SF_ANSWERS.filter(function (c) { return !c.show || c.show(); }), entered = SF_ENTERED.filter(function (c) { return !c.show || c.show(); });
+    var sig = answers.map(function (c) { return c.id + "=" + v(c.id); }).join("|") + "#" + entered.map(function (c) { return c.fields[0] + "=" + (sfMarks[c.fields[0]] || ""); }).join("|");
+    if (sig === sfSig) return; sfSig = sig; box.textContent = "";
+    var row = el("div", "sf-row");
+    entered.forEach(function (c) {
+      var st = sfMarks[c.fields[0]] || "", b = el("button", st === "dk" ? "dk" : null, c.label + (st === "sf" ? ": in Salesforce" : st === "dk" ? ": PC didn't know" : ""));
+      b.type = "button"; b.setAttribute("aria-pressed", st === "sf" ? "true" : "false");
+      b.addEventListener("click", function () {
+        var next = st === "" ? "sf" : st === "sf" ? "dk" : "";
+        c.fields.forEach(function (id) { if (next) sfMarks[id] = next; else delete sfMarks[id]; });
+        render();
+      });
+      row.appendChild(b);
+    });
+    box.appendChild(row);
+    answers.forEach(function (c) {
+      var r = el("div", "sf-row"); r.appendChild(el("span", "sf-lab", c.label));
+      c.opts.forEach(function (o) {
+        var on = v(c.id) === o, b = el("button", null, o === DK ? "Unknown" : o);
+        b.type = "button"; b.setAttribute("aria-pressed", on ? "true" : "false"); b.setAttribute("aria-label", c.label + ": " + (o === DK ? "Unknown" : o));
+        b.addEventListener("click", function () { $(c.id).value = on ? "" : o; render(); });
+        r.appendChild(b);
+      });
+      box.appendChild(r);
+    });
+  }
+  $("quick").checked = CONFIG.defaultMode !== "full";
+  $("quick").addEventListener("change", function () { if (isQuick()) { $("more").open = false; showTab("note"); } render(); });
+
   // ---- Ask next: facts still needed to pin down the case ----
   var probeMarks = {}, probeSig = null;   // fact id -> "dk" (PC didn't know) | "nr" (not relevant)
   function typeIdFromLabel(lbl) { for (var i = 0; i < CONFIG.caseTypes.length; i++) if (CONFIG.caseTypes[i].label === lbl) return CONFIG.caseTypes[i].id; return ""; }
@@ -1730,9 +1849,11 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
     return out;
   }
   function filled(id) {
+    if (isQuick() && sfMarks[id] === "sf") return true;   // marked "In Salesforce" in Quick mode
     if (id === "injpicks") return injPicked().length > 0;
     var x = v(id); return x !== "" && x !== false && !/_{3,}/.test(String(x));
   }
+  function sfDk(fc) { return isQuick() && [].concat(fc.field || [], fc.any || []).some(function (id) { return sfMarks[id] === "dk"; }); }
   function storyText() { return STORY.concat(["outcome", "behalf"]).map(function (id) { return v(id); }).join(" \n "); }
   function triggerHits(text) {
     var t = v("type"); text = text == null ? storyText() : text;
@@ -1754,7 +1875,8 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
     var facts = list.map(function (x, i) {
       var mark = probeMarks[x.fc.id];
       return { id: x.fc.id, label: x.fc.label, q: x.fc.q, level: x.fc.level || "critical", src: x.src, order: i, hasField: !!(x.fc.field || x.fc.any),
-        state: mark || (factAnswered(x.fc, text) ? "ok" : "open") };
+        ids: [].concat(x.fc.field || [], x.fc.any || []),
+        state: mark || (sfDk(x.fc) ? "dk" : factAnswered(x.fc, text) ? "ok" : "open") };
     }).filter(function (x) { return x.state !== "nr"; });
     var crit = facts.filter(function (x) { return x.level === "critical"; });
     var open = facts.filter(function (x) { return x.state === "open"; }).sort(function (a, b) { return (a.level === "critical" ? 0 : 1) - (b.level === "critical" ? 0 : 1) || a.order - b.order; });
@@ -1795,6 +1917,7 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
   function clearForm() {
     FIELDS.forEach(function (id) { var e = $(id); if (!e) return; if (e.type === "checkbox") e.checked = false; else e.value = ""; });
     undoStack = []; $("btn-undo").disabled = true; $("polish-out").textContent = "";
+    sfMarks = {}; sfSig = null;
     rejected = {}; ignoreWords = {}; probeMarks = {}; probeSig = null; reviewShown = false; copyWarned = false;
     crmPtr = 0; crmDone = {}; lastTemplate = "";
     Array.prototype.forEach.call(document.querySelectorAll(".dr-chk"), function (c) { c.checked = false; });
@@ -1838,7 +1961,9 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
     if (!e.altKey || e.ctrlKey || e.metaKey) return;
     if (JUMP[e.code]) {
       e.preventDefault();
-      var sec = $(JUMP[e.code]); sec.scrollIntoView({ block: "start" });
+      var sec = $(JUMP[e.code]);
+      if (sec.closest("details")) sec.closest("details").open = true;
+      sec.scrollIntoView({ block: "start" });
       var nextField = sec.id === "check" ? $("c-rec") : (function () {
         var n = sec.nextElementSibling;
         while (n) { var inp = n.matches && n.matches("input,select,textarea") ? n : n.querySelector && n.querySelector("input:not([type=hidden]),select,textarea"); if (inp && inp.offsetParent !== null) return inp; n = n.nextElementSibling; }
@@ -1856,7 +1981,7 @@ if (CUSTOM) Object.keys(CUSTOM).forEach(function (k) { CONFIG[k] = CUSTOM[k]; })
   window.addEventListener("pagehide", clearForm);
 
   window.__test = { polishText: polishText, idHits: idHits, addsNothing: addsNothing, grammarIssues: grammarIssues, consistency: consistency,
-    spellIssues: spellIssues, suggest: suggest, grammarSuggestions: grammarSuggestions, reviewItems: reviewItems, probeState: probeState, isKnown: isKnown }; // for automated checks; holds no data
+    isQuick: isQuick, note: function () { return buildNote(); }, spellIssues: spellIssues, suggest: suggest, grammarSuggestions: grammarSuggestions, reviewItems: reviewItems, probeState: probeState, isKnown: isKnown }; // for automated checks; holds no data
   render(); renderQR(); resetIdle();
 })();
 </script>
