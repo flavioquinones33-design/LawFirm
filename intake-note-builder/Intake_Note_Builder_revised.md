@@ -8,15 +8,35 @@ In free-text fields, describe roles (the other driver, the store manager), not n
 
 Do not paste this note into AI tools or personal apps. The form clears after 10 minutes of inactivity and when the tab closes. Nothing is saved.
 
+## Listen
+
+- **What it is** — the Listen button in the header hears your side of the call through the microphone and checks what you say against the opening and treatment questions. It runs only when Chrome can recognise speech on this computer (the same kind of on-device engine as Chrome's Live Caption). If it can't, Listen stays off and says so; it never sends audio anywhere.
+- **Nothing is kept** — no recording and no transcript. Each phrase is checked and dropped.
+- **It never ticks for you** — when it hears the recording disclosure, the phone check or the age question, that button in the Opening bar lights up "heard — tap to confirm". The lead source checklist item lights up the same way. A treatment question you asked gets a "heard you ask" tag in Ask next; you still write the answer.
+- **Greeting timer** — tap **Call started** when the call connects. It shows the seconds until it first hears you (or until you tap the recording disclosure, if Listen is off). Late after 5 seconds (`greetSeconds`).
+- **Quiet prompt** — after 15 seconds without hearing you (`silenceSeconds`), a line to say appears. It hears only you, so it may also appear while the caller is talking.
+- **Turn it on before the call** — the first time per page load, Listen only switches on while the form is empty. In testing, Chrome closed the tab when asked for on-device speech it didn't have.
+- **First use** — Chrome may offer a one-time download of its speech model and will ask for the microphone. Check with your supervisor before using it on live calls.
+- **Settings** — `listenLang`, `greetSeconds`, `silenceSeconds` and the `listenCues` phrases are in SETTINGS.
+
+## Quality guards
+
+- **Opening banner** — the red bar at the top stays until the recording disclosure, phone verification and age check are done. Greet right away, then tap each one as you say it. "Under 18" keeps the bar up with the parent/guardian reminder.
+- **Copy note is blocked** until every autofail item is marked: recording disclosure, phone verification, age, lead source question, no legal advice and no promises.
+- **Say while you type** — after about 8 seconds of typing without a pause, a line appears that you can say so the caller isn't left in silence. The lines and the delay are in SETTINGS (`bridgeLines`, `bridgeAfterSeconds`). It can only see typing on this page, not in Salesforce.
+- **Treatment** — Ask next has five separate critical questions for every case type: ER, hospital or urgent care; X-rays, MRI or CT; ongoing treatment; medications; follow-up appointments. Each is answered by words in the story, or by "PC didn't know" / "Not relevant".
+- **Disposition** — always visible, with a red flag until one is picked. When your notes mention a callback, a transfer, a do-not-call request or a checked decline rule, it suggests the matching disposition with a Use button. Set the same one in the phone system.
+- **Before you hang up** — the list above Copy note shows what is still open: opening checks, age, lead source, how it happened, injuries, treatment questions, next steps, disposition, and no legal advice or promises. After you copy, it reminds you to paste the note into Salesforce General Information before the call ends, until you tick Pasted.
+
 ## Quick mode
 
 Quick mode is the default. It is for working with Salesforce open: the facts go in Salesforce once, and this page holds only what Salesforce can't.
 
 - **During the call** — keep this page open. Pick the case type and type the story into What happened as the PC talks. Ask next shows what to ask.
-- **Salesforce facts** — when you enter a fact in Salesforce, tap its chip here. Don't retype it. Incident date, City and state, Injuries, Treatment and Establishment / employer take one tap for "in Salesforce" and a second for "PC didn't know". At fault, Has attorney and Settled take Yes or No. PC insured, At-fault party insured, At-fault driving for a company and Police report take Yes, No or Unknown, so the checks can compare them with the story.
+- **Salesforce facts** — when you enter a fact in Salesforce, tap its chip here. Don't retype it. Incident date, City and state, Injuries and Establishment / employer take one tap for "in Salesforce" and a second for "PC didn't know". At fault, Has attorney and Settled take Yes or No. PC insured, At-fault party insured, At-fault driving for a company and Police report take Yes, No or Unknown, so the checks can compare them with the story.
 - **What you type** — Case type, What happened, Details (anything the Salesforce fields can't hold, including injuries and treatment in the PC's own words) and Call outcome and next steps.
 - **The note** — call checks, case type, the story, details, next steps and what is missing. It does not repeat the Salesforce fields. Paste it into General Information at the end.
-- **Voicemail and call disposition** — collapsed; open them when needed. The "disposition not selected" flag is off in Quick mode.
+- **Voicemail script** — collapsed; open it when needed. Call disposition is always visible.
 - **Full form** — uncheck Quick mode in the header to get every field, the call script and the CRM fields tab. Switching keeps what you entered.
 
 The chips are your word: the page cannot see Salesforce. Tap a chip only after the fact is really entered.

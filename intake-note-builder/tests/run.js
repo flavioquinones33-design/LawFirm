@@ -9,6 +9,12 @@ function check(name, ok, detail) {
   if (ok) passed++; else { failed++; console.log("FAIL " + name + (detail ? "\n     " + detail : "")); }
 }
 
+// Marks every autofail item, which unblocks Copy note.
+async function passAutofail(page) {
+  for (const id of ["#c-rec", "#c-phone", "#c-src", "#c-legal", "#c-promise"]) await page.check(id);
+  await page.selectOption("#c-age", "adult");
+}
+
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage();
@@ -113,6 +119,9 @@ function check(name, ok, detail) {
 
   // ---------- Copy reminder when suggestions are pending ----------
   await page.fill("#spec", "their was no other car");
+  check("copy blocked until autofail items are marked", await page.isDisabled("#copy"));
+  await passAutofail(page);
+  check("copy unblocked once every autofail item is marked", !(await page.isDisabled("#copy")));
   await page.click("#copy");
   check("copy reminds about pending suggestions", /not reviewed/.test(await page.textContent("#toast")));
 
@@ -158,6 +167,7 @@ function check(name, ok, detail) {
   check("injury summary list", JSON.stringify(inj) === JSON.stringify(["Amputation", "Brain Bleed or Coma", "Death", "Multiple Broken Bones", "Multiple Surgeries", "Neck / Back Surgery", "Traumatic Brain Injury"]), JSON.stringify(inj));
   await page.click("#btn-new"); await page.selectOption("#type", "dog");
   check("fault and insurance lines for every case type", /PC at fault/.test(await page.textContent("#note")) && /PC has insurance/.test(await page.textContent("#note")));
+  await passAutofail(page);
   await page.fill("#what", "PC's phone is 555-123-4567");
   check("copy blocked while an identifier is detected", await page.isDisabled("#copy"));
 
@@ -187,7 +197,7 @@ function check(name, ok, detail) {
   check("quick: note lists both kinds of Missing", /MISSING/.test(qn) && /Not asked \(raise on callback\)/.test(qn) && /Asked, PC didn't know \(request documents\): [^\n]*Incident date[^\n]*At-fault insurance/.test(qn), qn);
   check("quick: note does not repeat Salesforce fields", !/PC at fault|PC has insurance|Incident date:|Incident city|Represented by/.test(qn), qn);
   check("quick: note has story and next steps", /What happened \(as PC reports\): PC reports being the driver/.test(qn) && /NEXT STEPS/.test(qn));
-  check("quick: no disposition flag until one is picked", !/Call disposition not selected/.test(await page.textContent("#flags")));
+  check("quick: disposition is visible with a red flag", (await page.isVisible("#disp")) && /Call disposition not selected/.test(await page.textContent("#flags")));
   await page.fill("#what", "PC was making a delivery in a company van when another car hit them.");
   check("quick: dual-case trigger fires", (await page.evaluate(() => __test.consistency().map((c) => c.id))).indexOf("trig-mva-wc") >= 0);
   check("quick: no establishment chip before a second type", (await page.locator("#sf button:has-text('Establishment')").count()) === 0);
@@ -204,6 +214,136 @@ function check(name, ok, detail) {
   check("New lead clears chips", (await page.locator("#sf button[aria-pressed='true']").count()) === 0 && (await page.inputValue("#oins")) === "");
   check("New lead stays in Quick mode", await page.evaluate(() => __test.isQuick()));
   await page.uncheck("#quick");
+
+  // ---------- Quality guards ----------
+  await page.goto(PAGE);
+  check("opening banner shows at the start", await page.isVisible("#opening"));
+  await page.click("#ob-rec"); await page.click("#ob-phone");
+  check("opening banner stays until age is verified", await page.isVisible("#opening"));
+  await page.click("#ob-minor");
+  check("under 18 keeps the banner with the guardian reminder", (await page.isVisible("#opening")) && /guardian/.test(await page.textContent("#opening-note")));
+  await page.click("#ob-adult");
+  check("opening banner clears once all three are done", !(await page.isVisible("#opening")) && (await page.inputValue("#c-age")) === "adult" && (await page.isChecked("#c-rec")));
+  check("autofail gate lists what is still open", JSON.stringify(await page.evaluate(() => __test.autofailOpen())) === JSON.stringify(["lead source question", "no legal advice", "no promises"]));
+  check("copy still blocked with whole-call items open", await page.isDisabled("#copy"));
+
+  await page.selectOption("#type", "mva");
+  const txIds = ["tx-er", "tx-imaging", "tx-ongoing", "tx-meds", "tx-followup"];
+  let openTx = await page.evaluate(() => __test.probeState().open.map((f) => f.id).filter((id) => /^tx-/.test(id)));
+  check("five separate treatment questions", JSON.stringify(openTx) === JSON.stringify(txIds), JSON.stringify(openTx));
+  await page.fill("#spec", "Went to the ER the same day and had X-rays. Taking ibuprofen.");
+  openTx = await page.evaluate(() => __test.probeState().open.map((f) => f.id).filter((id) => /^tx-/.test(id)));
+  check("story answers only the treatment questions it covers", JSON.stringify(openTx) === JSON.stringify(["tx-ongoing", "tx-followup"]), JSON.stringify(openTx));
+  check("injuries typed in Details count as written down", /\u2713 Injuries are written down or marked/.test(await page.textContent("#hangup")) === false);
+  await page.fill("#spec", "Neck pain. Went to the ER the same day and had X-rays. Taking ibuprofen.");
+  check("injury words in Details mark injuries as written down", /\u2713 Injuries are written down or marked/.test(await page.textContent("#hangup")));
+  check("hang-up list counts open treatment questions", /Treatment questions: 2 of 5 still to ask/.test(await page.textContent("#hangup")));
+  await page.fill("#spec", "Went to the ER the same day and had X-rays. Taking ibuprofen. Sees a chiropractor weekly, next appointment Friday.");
+  check("hang-up list clears treatment once all are covered", /All treatment questions asked/.test(await page.textContent("#hangup")));
+
+  await page.fill("#outcome", "PC asked for a call back tomorrow afternoon.");
+  check("callback in the notes suggests the callback disposition", (await page.evaluate(() => __test.suggestedDisp())) === "Schedule Callback" && (await page.isVisible("#disp-suggest")));
+  await page.click("#disp-suggest button");
+  check("Use sets the suggested disposition", (await page.inputValue("#disp")) === "Schedule Callback" && !(await page.isVisible("#disp-suggest")));
+  check("disposition hint names the phone system", /phone system/.test(await page.textContent("#disp-where")));
+
+  await page.fill("#what", "PC reports being the driver when another car ran a red light and hit the passenger side.");
+  await page.fill("#spec", "Neck pain. Went to the ER and had X-rays. Taking ibuprofen. Sees a chiropractor weekly, next appointment Friday.");
+  await page.fill("#cbtime", "03/20/2026 3:00 PM");
+  for (const id of ["#c-src", "#c-legal", "#c-promise"]) await page.check(id);
+  check("copy unblocked after the last autofail item", !(await page.isDisabled("#copy")));
+  check("paste reminder hidden before copying", !(await page.isVisible("#pasted-wrap")));
+  await page.click("#copy");
+  if (/not reviewed/.test(await page.textContent("#toast"))) await page.click("#copy");
+  check("after copying, it reminds to paste into Salesforce", /Paste it into Salesforce General Information now/.test(await page.textContent("#hangup")) && (await page.isVisible("#pasted-wrap")));
+  await page.check("#pasted");
+  check("ticking Pasted clears the reminder", !/Paste it into Salesforce/.test(await page.textContent("#hangup")));
+
+  await page.evaluate(() => { CONFIG.bridgeAfterSeconds = 0; });
+  await page.click("#what"); await page.keyboard.type("ab");
+  check("typing nudge shows a line to say", (await page.isVisible("#bridge")) && /writing that down/.test(await page.textContent("#bridge")));
+  await page.click("#btn-new");
+  check("New lead brings back the opening banner and clears the nudge", (await page.isVisible("#opening")) && !(await page.isVisible("#bridge")) && !(await page.isVisible("#pasted-wrap")));
+  await page.uncheck("#quick");
+
+  // ---------- Listen (on-device speech) ----------
+  // A stand-in for Chrome's recognizer, to test the rules without a real microphone.
+  async function fakePage(opts) {
+    const ctx = await browser.newContext();
+    await ctx.addInitScript((o) => {
+      window.__sr = { started: 0, installs: [], avail: o.avail, lastProcessLocally: null };
+      function FakeSR() { this.processLocally = false; }
+      if (!o.noLocal) Object.defineProperty(FakeSR.prototype, "processLocally", { value: false, writable: true });
+      FakeSR.prototype.start = function () { window.__sr.started++; window.__sr.lastProcessLocally = this.processLocally; window.__sr.inst = this; };
+      FakeSR.prototype.abort = function () {};
+      FakeSR.available = async (q) => { window.__sr.query = q; return window.__sr.avail; };
+      FakeSR.install = async (q) => { window.__sr.installs.push(q); window.__sr.avail = "available"; return true; };
+      window.SpeechRecognition = FakeSR; window.webkitSpeechRecognition = FakeSR;
+    }, opts);
+    const p = await ctx.newPage(); const errs = [];
+    p.on("pageerror", (e) => errs.push(e.message));
+    p.on("request", (r) => { if (!r.url().startsWith("file:")) requests.push(r.url()); });
+    await p.goto(PAGE); return { p, ctx, errs };
+  }
+  let f = await fakePage({ avail: "unavailable" });
+  await f.p.click("#btn-listen"); await f.p.waitForSelector("#listen-bar:not([hidden])");
+  check("listen refuses when on-device speech isn't available", /can't recognise speech on this computer/.test(await f.p.textContent("#listen-bar")) && (await f.p.getAttribute("#btn-listen", "aria-pressed")) === "false" && (await f.p.evaluate(() => window.__sr.started)) === 0);
+  await f.ctx.close();
+  f = await fakePage({ avail: "available" });
+  await f.p.fill("#what", "PC reports a crash.");
+  await f.p.click("#btn-listen"); await f.p.waitForSelector("#listen-bar:not([hidden])");
+  check("first switch-on is refused once something is typed", /while the form is empty/.test(await f.p.textContent("#listen-bar")) && (await f.p.evaluate(() => window.__sr.started)) === 0);
+  await f.ctx.close();
+  f = await fakePage({ avail: "available", noLocal: true });
+  await f.p.click("#btn-listen"); await f.p.waitForSelector("#listen-bar:not([hidden])");
+  check("listen refuses a recognizer without on-device mode", (await f.p.evaluate(() => window.__sr.started)) === 0 && /can't recognise speech on this computer/.test(await f.p.textContent("#listen-bar")));
+  await f.ctx.close();
+
+  f = await fakePage({ avail: "downloadable" });
+  await f.p.click("#btn-listen"); await f.p.waitForSelector("#listen-bar button");
+  check("listen offers the one-time model download", /one-time download/.test(await f.p.textContent("#listen-bar")) && (await f.p.evaluate(() => window.__sr.started)) === 0);
+  await f.p.click("#listen-bar button");
+  await f.p.waitForFunction(() => window.__sr.started === 1);
+  const inst = await f.p.evaluate(() => window.__sr.installs[0]);
+  check("model download asks for on-device only", inst && inst.processLocally === true && inst.langs[0] === "en-US", JSON.stringify(inst));
+  await f.ctx.close();
+
+  f = await fakePage({ avail: "available" });
+  const p2 = f.p;
+  await p2.click("#btn-listen"); await p2.waitForFunction(() => window.__sr.started === 1);
+  check("listen asks availability for on-device", (await p2.evaluate(() => window.__sr.query.processLocally)) === true);
+  check("listen starts only with on-device recognition on", (await p2.evaluate(() => window.__sr.lastProcessLocally)) === true && (await p2.getAttribute("#btn-listen", "aria-pressed")) === "true");
+  check("listen says nothing is recorded", /Nothing is recorded or saved/.test(await p2.textContent("#listen-bar")));
+
+  await p2.click("#ob-start");
+  check("greeting timer starts", /Waiting: \d+ s/.test(await p2.textContent("#greet")));
+  await p2.waitForTimeout(1200);
+  await p2.evaluate(() => __test.listenHear("hi thanks for calling this call may be recorded for quality"));
+  check("greeting timer stops when it first hears you", /Greeting: 1 s/.test(await p2.textContent("#greet")), await p2.textContent("#greet"));
+  check("heard disclosure highlights the button but does not tick it", (await p2.getAttribute("#ob-rec", "class")) === "heard" && !(await p2.isChecked("#c-rec")));
+  await p2.evaluate(() => __test.listenHear("can you confirm you are over 18"));
+  check("heard age question highlights the age button", /heard/.test(await p2.getAttribute("#ob-adult", "class") || ""));
+  await p2.evaluate(() => __test.listenHear("how did you hear about us"));
+  check("heard lead source question highlights the checklist item", /heard-src/.test(await p2.getAttribute('label[for="c-src"]', "class") || "") && !(await p2.isChecked("#c-src")));
+  await p2.selectOption("#type", "mva");
+  await p2.evaluate(() => __test.listenHear("did you go to the emergency room after the accident"));
+  check("heard treatment question is tagged in Ask next", /heard you ask/.test(await p2.textContent("#probe")) && (await p2.evaluate(() => __test.probeState().open.some((x) => x.id === "tx-er"))));
+  await p2.click("#ob-rec");
+  check("tapping clears the highlight", !/heard/.test(await p2.getAttribute("#ob-rec", "class") || ""));
+  await p2.evaluate(() => { CONFIG.silenceSeconds = 1; });
+  await p2.waitForTimeout(2300);
+  check("quiet prompt appears after silence", await p2.isVisible("#bridge"));
+  check("no transcript is kept on the page", (await p2.evaluate(() => document.body.innerText)).indexOf("emergency room after the accident") < 0);
+  await p2.click("#btn-new");
+  const st = await p2.evaluate(() => __test.listenState());
+  check("New lead clears what was heard and keeps Listen on", st.on === true && st.heard.length === 0 && !st.callStart);
+  await p2.click("#btn-listen");
+  check("Listen turns off", (await p2.getAttribute("#btn-listen", "aria-pressed")) === "false" && !(await p2.isVisible("#listen-bar")));
+  await p2.fill("#what", "PC reports a crash.");
+  await p2.click("#btn-listen"); await p2.waitForFunction(() => window.__sr.started === 2);
+  check("after one good start, Listen can be switched on mid-call", (await p2.getAttribute("#btn-listen", "aria-pressed")) === "true");
+  check("no page errors with Listen", f.errs.length === 0, f.errs.join(" | "));
+  await f.ctx.close();
 
   // ---------- Performance ----------
   // Best of three runs, each with fresh unknown words, so one slow moment on the machine doesn't fail the check.
