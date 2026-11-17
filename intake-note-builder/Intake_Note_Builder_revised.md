@@ -8,6 +8,17 @@ In free-text fields, describe roles (the other driver, the store manager), not n
 
 Do not paste this note into AI tools or personal apps. The form clears after 10 minutes of inactivity and when the tab closes. Nothing is saved.
 
+## Listen
+
+- **What it is** — the Listen button in the header hears your side of the call through the microphone and checks what you say against the opening and treatment questions. It runs only when Chrome can recognise speech on this computer (the same kind of on-device engine as Chrome's Live Caption). If it can't, Listen stays off and says so; it never sends audio anywhere.
+- **Nothing is kept** — no recording and no transcript. Each phrase is checked and dropped.
+- **It never ticks for you** — when it hears the recording disclosure, the phone check or the age question, that button in the Opening bar lights up "heard — tap to confirm". The lead source checklist item lights up the same way. A treatment question you asked gets a "heard you ask" tag in Ask next; you still write the answer.
+- **Greeting timer** — tap **Call started** when the call connects. It shows the seconds until it first hears you (or until you tap the recording disclosure, if Listen is off). Late after 5 seconds (`greetSeconds`).
+- **Quiet prompt** — after 15 seconds without hearing you (`silenceSeconds`), a line to say appears. It hears only you, so it may also appear while the caller is talking.
+- **Turn it on before the call** — the first time per page load, Listen only switches on while the form is empty. In testing, Chrome closed the tab when asked for on-device speech it didn't have.
+- **First use** — Chrome may offer a one-time download of its speech model and will ask for the microphone. Check with your supervisor before using it on live calls.
+- **Settings** — `listenLang`, `greetSeconds`, `silenceSeconds` and the `listenCues` phrases are in SETTINGS.
+
 ## Quality guards
 
 - **Opening banner** — the red bar at the top stays until the recording disclosure, phone verification and age check are done. Greet right away, then tap each one as you say it. "Under 18" keeps the bar up with the parent/guardian reminder.
