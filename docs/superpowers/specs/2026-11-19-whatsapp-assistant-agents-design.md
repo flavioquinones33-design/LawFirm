@@ -75,9 +75,25 @@ No agent sends messages to clients. Replies are drafted for the owner to send.
 | 5 | Project tracker + strategist for RAG AP, Tech Beyond | Each project has status, next steps, risks; owner supplies non-confidential project descriptions |
 | 6 | Pilot on real messages | Only after phase 0; one-week pilot, then review |
 
+## Decisions (from owner, 2026-11-19)
+
+| Topic | Decision |
+|---|---|
+| Hosting | Firm's existing Google Cloud |
+| WhatsApp number | Current Business number, via Meta coexistence (availability to be confirmed) |
+| Task/project tracker | Google Sheets |
+| Summaries and approvals | WhatsApp to the owner |
+| Users | Small team |
+| Chat visibility | Everyone sees all chats (to be reconfirmed, see below) |
+| Calendar | Google Calendar |
+| Extracted as drafts | Tasks, meeting requests, deadlines/hearings, unanswered chats |
+| Briefs | Morning brief |
+| Strategist output | Next steps, risks and blockers, strategy options, weekly status |
+| Projects | "This will be for another law firm" (meaning to be clarified) |
+
 ## Open questions
 
-- Hosting choice (firm's existing cloud?).
-- Task tracker: Google Sheets, or an existing tool the firm uses.
-- Brief delivery: WhatsApp to the owner, email, or both.
-- Short descriptions of RAG AP, Tech Beyond, and other projects (goals, stage, deadlines).
+- Is the whole system, or only RAG AP and Tech Beyond, for another law firm? Who owns the WhatsApp number, Google Cloud account and calendar?
+- Keep "everyone sees all", or allow some chats to be marked restricted (conflicts, sensitive matters)?
+- Time and time zone for the morning brief.
+- Short, non-confidential descriptions of RAG AP, Tech Beyond and other projects (goals, stage, deadlines).
